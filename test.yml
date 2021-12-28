@@ -1,0 +1,54 @@
+
+redirects_domain_names:
+  - pkgd.link
+  - redirects.packaged.com
+  - baccaratqr.com
+  - belcampoqr.com
+  - cosmeticcompanystoreqr.com
+  - esteelauderqr.com
+  - fifthseasonfreshqr.com
+  - footlockerqr.com
+  - freshdirectqr.com
+  - getgoqr.com
+  - gianteagleqr.com
+  - hannafordqr.com
+  - hbomaxqr.com
+  - henryscheinqr.com
+  - icepikqr.com
+  - icepikyourcocktail.com
+  - lovedbylatinas.com
+  - maccosmeticsqr.com
+  - newbalanceqr.com
+  - packagedqr.com
+  - peapodqr.com
+  - pkgd.ninja
+  - pumaqr.com
+  - schweidandsonsqr.com
+  - shipyardqr.com
+  - shoppackaged.com
+  - southsidechamberqr.com
+  - stopandshopqr.com
+  - thecosmeticscompanystoreqr.com
+  - warnerbrosqr.com
+  - warnerbrothersqr.com
+  - weightwatchersqr.com
+  - wetgoqr.com
+  - whatnotqr.com
+
+contact_groups:
+  text_support_team:
+    emails: [scottm@caktusgroup.com, copelco@caktusgroup.com]
+    slack_channel: uptime
+
+uptime_tests:
+  - name: NC Cop Watch (Forward Justice)
+    url: https://nccopwatch.org/about
+    state: present
+    test_type: HTTP
+    check_rate: 300  # 5 mins
+    contact_groups: [text_support_team]
+  - name: Caktus Group
+    url: https://www.caktusgroup.com/
+    state: absent
+    test_type: HTTP
+    check_rate: 300  # 5 mins
