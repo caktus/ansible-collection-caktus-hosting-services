@@ -131,3 +131,5 @@ dmypy.json
 .direnv/
 .envrc
 playground.py
+config.yml
+.gitignore

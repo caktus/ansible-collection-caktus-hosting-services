@@ -1,5 +1,7 @@
 import logging
 import requests
+import yaml
+import argparse
 
 logger = logging.getLogger(__name__)
 
@@ -49,15 +51,18 @@ class UptimeTest(StatusCakeAPI):
 
 
 if __name__ == '__main__':
-    data = {"name":"Caktus Group", "state": "present", "test_type": "HTTP", "website_url": "https://www.caktusgroup.com/services/", "check_rate": "1800"}
-    test = UptimeTest(api_key="", **data)
-    test.fetch()
-    breakpoint()
-    
-    # client._request("post", "/v1/uptime", data=data)
 
-    # client._request("get", "/v1/uptime/6230254")
+    # argparse argument
+    parser = argparse.ArgumentParser(description="change file if congfig.yml is not an argument")
+    parser.add_argument("--file", metavar='file', type=str, default='config.yml', help="enter filename if not using config.yml")
+    args = parser.parse_args()
+
+    file = args.file
+
+    data_loaded = yaml.safe_load(open(file, 'r'))
+
+    for uptime_test in data_loaded["uptime_tests"]:
+        test = UptimeTest(api_key=data_loaded['api_key'], **uptime_test)
+        test.fetch()
+    print(data_loaded["uptime_tests"])
     # breakpoint()
-
-
-    # get_new_uptime_id()
