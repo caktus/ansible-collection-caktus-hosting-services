@@ -48,7 +48,6 @@ class UptimeTest(StatusCakeAPI):
 
     def save(self):
         fetch_data = self.fetch()
-        breakpoint()
         logger.debug(f"{self.data['name']} exists in StatusCake? {bool(fetch_data)}.")
         if not fetch_data:
             self.create()
