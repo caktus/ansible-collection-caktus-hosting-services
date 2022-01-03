@@ -50,6 +50,10 @@ class UptimeTest(StatusCakeAPI):
         if "check_rate" not in self.data:
             self.data["check_rate"] = 300
         self._request("put", f"{self.url}/{item_id}", data=self.data)
+    
+    def delete(self):
+        fetch_data = self.fetch()
+        self._request("delete", f"{self.url}/{fetch_data['id']}", data=self.data)
 
     def save(self):
         fetch_data = self.fetch()
@@ -85,4 +89,6 @@ if __name__ == '__main__':
             logger.info(uptime_test["name"])
             logger.info(uptime_test["website_url"])
             test = UptimeTest(api_key=data_loaded['api_key'], **uptime_test)
-            test.save()
+            test.fetch()
+            # test.save()
+            test.delete()
