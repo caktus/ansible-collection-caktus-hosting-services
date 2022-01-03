@@ -1,9 +1,10 @@
 import logging
 import requests
 import yaml
+import sys
 import argparse
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("statuscake")
 
 class StatusCakeAPI:
 
@@ -29,40 +30,64 @@ class UptimeTest(StatusCakeAPI):
 
     def fetch(self):
         self._request("get", self.url)
-        for test in self.response.json()['data']:
-            if test["name"] == self.data["name"]:
-                return test
+        if self.response.status_code == 200:
+            logger.debug("All uptime checks in StatusCake: %s", self.response.json()['data'])
+            for test in self.response.json()["data"]:
+                if test["name"] == self.data["name"]:
+                    logger.debug(f"Fetched data: {test}")
+                    return test
 
-    def add_key(self, key):
-        return f"{self.url}/{key}"
+    def create(self):
+        if "test_type" not in self.data:
+            self.data["test_type"] = "HTTP"
+        if "check_rate" not in self.data:
+            self.data["check_rate"] = 300
+        self._request("post", self.url, data=self.data)
 
-    def update(self,):
-        self._request("put", self.add_key())
-        
+    def update(self, item_id):
+        if "test_type" not in self.data:
+            self.data["test_type"] = "HTTP"
+        if "check_rate" not in self.data:
+            self.data["check_rate"] = 300
+        self._request("put", f"{self.url}/{item_id}", data=self.data)
+    
+    # def delete(self):
+    #     fetch_data = self.fetch()
+    #     self._request("delete", f"{self.url}/{fetch_data['id']}", data=self.data)
 
     def save(self):
-        # exists = self.fetch()
-        # if exists:
-            # self.update()
-        # else:
-            # self.create()
-        pass
+        fetch_data = self.fetch()
+        logger.debug(f"Does '{self.data['name']}' exists in StatusCake? {bool(fetch_data)}.")
+        if not fetch_data:
+            self.create()
+            logger.info(f"A new test for {self.data['name']} was created.")
+        if fetch_data:
+            self.update(fetch_data["id"])
+            logger.info(f"The test for '{fetch_data['name']}' was updated.")
 
 
 
 if __name__ == '__main__':
-
     # argparse argument
     parser = argparse.ArgumentParser(description="change file if congfig.yml is not an argument")
     parser.add_argument("--file", metavar='file', type=str, default='config.yml', help="enter filename if not using config.yml")
+    parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
     args = parser.parse_args()
+    parser_file = args.file
 
-    file = args.file
-
-    data_loaded = yaml.safe_load(open(file, 'r'))
+    # Logging config
+    formatter = logging.Formatter("%(levelname)s %(asctime)s %(name)s %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    
+    data_loaded = yaml.safe_load(open(parser_file, 'r'))
 
     for uptime_test in data_loaded["uptime_tests"]:
-        test = UptimeTest(api_key=data_loaded['api_key'], **uptime_test)
-        test.fetch()
-    print(data_loaded["uptime_tests"])
-    # breakpoint()
+        if uptime_test['state'] == 'present' and uptime_test['name']:
+            logger.info(uptime_test["name"])
+            logger.info(uptime_test["website_url"])
+            test = UptimeTest(api_key=data_loaded['api_key'], **uptime_test)
+            test.fetch()
+            test.save()
