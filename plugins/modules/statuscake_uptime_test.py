@@ -46,6 +46,7 @@ def main():
         "trigger_rate": {"required": False, "type": "int"},
         "use_jar": {"required": False, "type": "str"},
         "user_agent": {"required": False, "type": "str"},
+        "log_file": {"required": False, "type": "str"},
     }
     module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=False)
     api_key = module.params["api_key"]
@@ -81,6 +82,7 @@ def main():
         trigger_rate=module.params["trigger_rate"],
         use_jar=module.params["use_jar"],
         user_agent=module.params["user_agent"],
+        log_file=module.params["log_file"],
     )
 
     fetch_data = test.fetch()
