@@ -1,16 +1,3 @@
-certifi
-cfgv
-charset-normalizer
-distlib
-filelock
-identify
-idna
-nodeenv
-platformdirs
 pre-commit==2.16.0
 PyYAML==6.0
 requests==2.26.0
-six
-toml
-urllib3
-virtualenv
