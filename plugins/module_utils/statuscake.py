@@ -4,7 +4,7 @@ import yaml
 import sys
 import argparse
 
-logger = logging.getLogger("Statuscake -")
+logger = logging.getLogger("statuscake")
 
 
 class StatusCakeAPI:
@@ -56,13 +56,15 @@ class UptimeTest(StatusCakeAPI):
 
     def delete(self):
         fetch_data = self.fetch()
+        if not fetch_data:
+            return None
         if self.data["state"] == "absent" and self.data["name"] == fetch_data["name"]:
             self._request("delete", f"{self.url}/{fetch_data['id']}", data=self.data)
             logger.info(f"The test for '{self.data['name']}' was deleted")
 
     def save(self):
         fetch_data = self.fetch()
-        logger.debug(
+        logger.info(
             f"Does '{self.data['name']}' exists in StatusCake? {bool(fetch_data)}."
         )
         if not fetch_data:
