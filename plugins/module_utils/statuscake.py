@@ -8,9 +8,11 @@ logger = logging.getLogger("statuscake")
 
 
 class StatusCakeAPI:
-    def __init__(self, api_key, log_file=None, **kwargs) -> None:
+    def __init__(self, api_key, state, log_file=None, **kwargs) -> None:
         self.api_key = api_key
-        self.data = kwargs
+        self.state = state
+        self.id = None
+        self.config = kwargs
         self.client = requests.Session()
         self.client.headers["Authorization"] = f"Bearer {self.api_key}"
         if log_file:
@@ -34,54 +36,70 @@ class UptimeTest(StatusCakeAPI):
 
     url = "/v1/uptime"
 
-    def fetch(self):
+    def fetch_all(self):
         self._request("get", self.url)
         if self.response.status_code == 200:
             logger.debug(
                 "All uptime checks in StatusCake: %s", self.response.json()["data"]
             )
-            for test in self.response.json()["data"]:
-                if test["name"] == self.data["name"]:
-                    logger.debug(f"Fetched data: {test}")
-                    return test
+            return self.response.json()["data"]
+        return []
 
-    def _create(self):
-        if self.data["state"] == "present":
-            if "test_type" not in self.data:
-                self.data["test_type"] = "HTTP"
-            if "check_rate" not in self.data:
-                self.data["check_rate"] = 300
-            self._request("post", self.url, data=self.data)
+    def fetch(self):
+        for test in self.fetch_all():
+            if test["name"] == self.config["name"]:
+                logger.debug(f"Fetched data: {test}")
+                self.id = test["id"]
+                return test
 
-    def _update(self, item_id):
-        if "test_type" not in self.data:
-            self.data["test_type"] = "HTTP"
-        if "check_rate" not in self.data:
-            self.data["check_rate"] = 300
-        self._request("put", f"{self.url}/{item_id}", data=self.data)
+    def create(self):
+        """
+        Create an uptime test.
+        https://www.statuscake.com/api/v1/#operation/create-uptime-test
+        """
+        if not self.id:
+            if "test_type" not in self.config:
+                self.config["test_type"] = "HTTP"
+            if "check_rate" not in self.config:
+                self.config["check_rate"] = 300
+            self._request("post", self.url, data=self.config)
+            if self.response.status_code == 201:
+                self.id = int(self.response.json()["data"]["new_id"])
+                logger.info(f"A new test for '{self.config['name']}' was created.")
+
+    def update(self):
+        """
+        Update an uptime test.
+        https://www.statuscake.com/api/v1/#operation/update-uptime-test
+        """
+        if self.id:
+            self._request("put", f"{self.url}/{self.id}", data=self.config)
+            if self.response.status_code == 204:
+                logger.info(f"The test for '{self.config['name']}' was updated.")
 
     def delete(self):
-        fetch_data = self.fetch()
-        if not fetch_data:
-            return None
-        if self.data["state"] == "absent" and self.data["name"] == fetch_data["name"]:
-            self._request("delete", f"{self.url}/{fetch_data['id']}", data=self.data)
-            logger.info(f"The test for '{self.data['name']}' was deleted")
+        """
+        Delete an uptime test.
+        https://www.statuscake.com/api/v1/#operation/delete-uptime-test
+        """
+        if self.id:
+            self._request("delete", f"{self.url}/{self.id}")
+            if self.response.status_code == 204:
+                logger.info(f"The test for '{self.config['name']}' was deleted")
 
-    def save(self):
+    def sync(self):
         fetch_data = self.fetch()
         logger.info(
-            f"Does '{self.data['name']}' exists in StatusCake? {bool(fetch_data)}."
+            f"Does '{self.config['name']}' exists in StatusCake? {bool(fetch_data)}."
         )
-        if not fetch_data:
-            if self.data["state"] == "present":
-                self._create()
-                logger.debug(f"A new test for '{self.data['name']}' was created.")
-        if fetch_data and self.data["state"] == "present":
-            self._update(fetch_data["id"])
-            logger.info(
-                f"The test for '{fetch_data['name']}' was updated. Uptime: {fetch_data['uptime'] if fetch_data['uptime'] else 'Down' }"
-            )
+        # If test is 'present' update or create. Else delete.
+        if self.state == "present":
+            if self.id:
+                self.update()
+            else:
+                self.create()
+        else:
+            self.delete()
 
 
 if __name__ == "__main__":
@@ -114,8 +132,4 @@ if __name__ == "__main__":
     for uptime_test in data_loaded["uptime_tests"]:
         if uptime_test["name"]:
             test = UptimeTest(api_key=data_loaded["api_key"], **uptime_test)
-            # Checks whether tests need to be created or deleted on the UptimeTest
-            if uptime_test["state"] == "present":
-                test.save()
-            else:
-                test.delete()
+            test.sync()
