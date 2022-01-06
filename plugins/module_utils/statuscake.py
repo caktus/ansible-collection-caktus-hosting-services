@@ -8,11 +8,17 @@ logger = logging.getLogger("statuscake")
 
 
 class StatusCakeAPI:
-    def __init__(self, api_key, **kwargs) -> None:
+    def __init__(self, api_key, log_file=None, **kwargs) -> None:
         self.api_key = api_key
         self.data = kwargs
         self.client = requests.Session()
         self.client.headers["Authorization"] = f"Bearer {self.api_key}"
+        if log_file:
+            logging.basicConfig(
+                filename=log_file,
+                format="%(asctime)s %(name)-22s %(levelname)-8s %(message)s",
+                level=logging.DEBUG,
+            )
 
     def full_url(self, path):
         return f"https://api.statuscake.com{path}"
