@@ -121,10 +121,7 @@ class UptimeTest(StatusCakeAPI):
                 difference = dic_difference(pre_update, post_update)
                 self.status.success = True
                 self.status.changed = bool(difference)
-                if difference:
-                    msg = f"Changes (previous, current): {difference}"
-                else:
-                    msg = ""
+                msg = f"Changes (old, new): {difference}" if difference else ""
                 self.status.message = msg
                 if msg:
                     logger.info(msg)
@@ -147,9 +144,9 @@ class UptimeTest(StatusCakeAPI):
         self.status.message = msg
 
     def sync(self):
-        fetch_data = self.retrieve()
+        self.retrieve()
         logger.info(
-            f"Does '{self.config['name']}' exists in StatusCake? {bool(fetch_data)}."
+            f"Does '{self.config['name']}' exist in StatusCake? {bool(self.id)}."
         )
         if self.state == "present":
             if self.id:
