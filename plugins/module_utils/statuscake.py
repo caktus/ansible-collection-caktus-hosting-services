@@ -102,7 +102,11 @@ class UptimeTest(StatusCakeAPI):
             self._request("post", self.url, data=self.config)
             if self.response.status_code == 201:
                 self.id = int(self.response.json()["data"]["new_id"])
-                logger.info(f"A new test for '{self.config['name']}' was created.")
+                msg = f"A new test for '{self.config['name']}' was created."
+                logger.info(msg)
+                self.status.success = True
+                self.status.changed = True
+                self.status.message = msg
 
     def update(self):
         """
