@@ -50,6 +50,11 @@ class StatusCakeAPI:
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
         try:
+            data = {}
+            for key, val in kwargs["data"].items():
+                if val:
+                    data[key] = val
+            kwargs["data"] = data
             logger.debug(f"Request data: {kwargs['data']}")
         except KeyError:
             pass
@@ -102,7 +107,11 @@ class UptimeTest(StatusCakeAPI):
             self._request("post", self.url, data=self.config)
             if self.response.status_code == 201:
                 self.id = int(self.response.json()["data"]["new_id"])
-                logger.info(f"A new test for '{self.config['name']}' was created.")
+                msg = f"A new test for '{self.config['name']}' was created."
+                logger.info(msg)
+                self.status.success = True
+                self.status.changed = True
+                self.status.message = msg
 
     def update(self):
         """
@@ -117,10 +126,7 @@ class UptimeTest(StatusCakeAPI):
                 difference = dic_difference(pre_update, post_update)
                 self.status.success = True
                 self.status.changed = bool(difference)
-                if difference:
-                    msg = f"Changes (previous, current): {difference}"
-                else:
-                    msg = ""
+                msg = f"Changes (old, new): {difference}" if difference else ""
                 self.status.message = msg
                 if msg:
                     logger.info(msg)
@@ -133,12 +139,19 @@ class UptimeTest(StatusCakeAPI):
         if self.id:
             self._request("delete", f"{self.url}/{self.id}")
             if self.response.status_code == 204:
-                logger.info(f"The test for '{self.config['name']}' was deleted")
+                msg = f"The test for '{self.config['name']}' was deleted"
+                self.status.success = True
+                self.status.changed = True
+        else:
+            self.status.success = True
+            msg = f"'{self.config['name']}' test not found for deletion"
+        logger.info(msg)
+        self.status.message = msg
 
     def sync(self):
-        fetch_data = self.retrieve()
+        self.retrieve()
         logger.info(
-            f"Does '{self.config['name']}' exists in StatusCake? {bool(fetch_data)}."
+            f"Does '{self.config['name']}' exist in StatusCake? {bool(self.id)}."
         )
         if self.state == "present":
             if self.id:
