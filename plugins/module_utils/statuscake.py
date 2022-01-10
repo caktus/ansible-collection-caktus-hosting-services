@@ -50,6 +50,11 @@ class StatusCakeAPI:
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
         try:
+            data = {}
+            for key, val in kwargs["data"].items():
+                if val:
+                    data[key] = val
+            kwargs["data"] = data
             logger.debug(f"Request data: {kwargs['data']}")
         except KeyError:
             pass
