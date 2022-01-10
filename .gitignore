@@ -133,3 +133,5 @@ dmypy.json
 playground.py
 config.yml
 .gitignore
+.DS_Store
+api_playground.py
