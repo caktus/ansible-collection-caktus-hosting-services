@@ -3,8 +3,29 @@ import requests
 import yaml
 import sys
 import argparse
+from dataclasses import dataclass
 
 logger = logging.getLogger("statuscake")
+
+
+def flatten(obj):
+    flat = set()
+    for key, val in obj.items():
+        flat.add((key, str(val)))
+    return flat
+
+
+def dic_difference(dic1, dic2):
+    set_pre = set(flatten(dic1))
+    set_post = set(flatten(dic2))
+    return set_pre ^ set_post
+
+
+@dataclass
+class Status:
+    success: bool = False
+    changed: bool = False
+    message: str = ""
 
 
 class StatusCakeAPI:
@@ -15,6 +36,7 @@ class StatusCakeAPI:
         self.config = kwargs
         self.client = requests.Session()
         self.client.headers["Authorization"] = f"Bearer {self.api_key}"
+        self.status = Status()
         if log_file:
             logging.basicConfig(
                 filename=log_file,
@@ -27,6 +49,10 @@ class StatusCakeAPI:
 
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
+        try:
+            logger.debug(f"Request data: {kwargs['data']}")
+        except KeyError:
+            pass
         response = requests_method(self.full_url(path), **kwargs)
         self.response = response
         return response
@@ -45,12 +71,23 @@ class UptimeTest(StatusCakeAPI):
             return self.response.json()["data"]
         return []
 
-    def fetch(self):
+    def find_by_name(self):
         for test in self.fetch_all():
             if test["name"] == self.config["name"]:
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
                 return test
+
+    def retrieve(self):
+        """
+        Rerieve an uptime test with an id
+        https://www.statuscake.com/api/v1/#operation/get-uptime-test
+        """
+        self.find_by_name()
+        if self.id:
+            self._request("get", f"{self.url}/{self.id}", data=self.config)
+            if self.response.status_code == 200:
+                return self.response.json()["data"]
 
     def create(self):
         """
@@ -73,9 +110,20 @@ class UptimeTest(StatusCakeAPI):
         https://www.statuscake.com/api/v1/#operation/update-uptime-test
         """
         if self.id:
+            pre_update = self.retrieve()
             self._request("put", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 204:
-                logger.info(f"The test for '{self.config['name']}' was updated.")
+                post_update = self.retrieve()
+                difference = dic_difference(pre_update, post_update)
+                self.status.success = True
+                self.status.changed = bool(difference)
+                if difference:
+                    msg = f"Changes (previous, current): {difference}"
+                else:
+                    msg = ""
+                self.status.message = msg
+                if msg:
+                    logger.info(msg)
 
     def delete(self):
         """
@@ -88,11 +136,10 @@ class UptimeTest(StatusCakeAPI):
                 logger.info(f"The test for '{self.config['name']}' was deleted")
 
     def sync(self):
-        fetch_data = self.fetch()
+        fetch_data = self.retrieve()
         logger.info(
             f"Does '{self.config['name']}' exists in StatusCake? {bool(fetch_data)}."
         )
-        # If test is 'present' update or create. Else delete.
         if self.state == "present":
             if self.id:
                 self.update()
@@ -100,6 +147,7 @@ class UptimeTest(StatusCakeAPI):
                 self.create()
         else:
             self.delete()
+        return self.status
 
 
 if __name__ == "__main__":
@@ -132,4 +180,11 @@ if __name__ == "__main__":
     for uptime_test in data_loaded["uptime_tests"]:
         if uptime_test["name"]:
             test = UptimeTest(api_key=data_loaded["api_key"], **uptime_test)
-            test.sync()
+            # result = test.retrieve()
+            status = test.sync()
+            if status.changed:
+                logger.info(status)
+            # if result.success:
+            #     module.exit_json(changed=result.changed, msg=result.msg)
+            # else:
+            #     module.fail_json(msg=result.msg)
