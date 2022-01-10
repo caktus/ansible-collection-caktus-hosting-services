@@ -55,6 +55,7 @@ def main():
     test = UptimeTest(
         api_key=api_key,
         name=name,
+        state=state,
         test_type=module.params["test_type"],
         website_url=module.params["website_url"],
         check_rate=module.params["check_rate"],
@@ -84,30 +85,14 @@ def main():
         user_agent=module.params["user_agent"],
         log_file=module.params["log_file"],
     )
-
-    fetch_data = test.fetch()
-    status_cake_id = fetch_data["id"] if fetch_data else None
-    if state == "present":
-        if status_cake_id:
-            # pre_update = test.get(status_cake_id)
-            test.update(status_cake_id)
-            # post_update = test.get(status_cake_id)
-            module.exit_json(
-                changed=False,
-                msg="Test Updated: %s, ID: %s" % (name, status_cake_id),
-            )
-        else:
-            test.create()
-            module.exit_json(
-                changed=True,
-                msg="Test Created: %s, ID: %s" % (name, test.response.content),
-            )
-    elif state == "absent" and status_cake_id:
-        test.delete(status_cake_id)
+    status = test.sync()
+    if status.success:
         module.exit_json(
-            changed=True,
-            msg="Test Deleted: %s, ID: %s" % (name, test.response.content),
+            changed=status.changed,
+            msg=status.message,
         )
+    else:
+        module.fail_json(msg=status.message)
 
 
 if __name__ == "__main__":
