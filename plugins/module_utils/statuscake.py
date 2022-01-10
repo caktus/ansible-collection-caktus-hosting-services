@@ -133,7 +133,14 @@ class UptimeTest(StatusCakeAPI):
         if self.id:
             self._request("delete", f"{self.url}/{self.id}")
             if self.response.status_code == 204:
-                logger.info(f"The test for '{self.config['name']}' was deleted")
+                msg = f"The test for '{self.config['name']}' was deleted"
+                self.status.success = True
+                self.status.changed = True
+        else:
+            self.status.success = True
+            msg = f"'{self.config['name']}' test not found for deletion"
+        logger.info(msg)
+        self.status.message = msg
 
     def sync(self):
         fetch_data = self.retrieve()
