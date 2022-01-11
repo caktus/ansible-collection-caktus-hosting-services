@@ -104,6 +104,16 @@ class UptimeTest(StatusCakeAPI):
                 self.config["test_type"] = "HTTP"
             if "check_rate" not in self.config:
                 self.config["check_rate"] = 300
+            # Convert all _csv arguments to expect lists rather than strings
+            for key, value in self.config.items():
+                if key == "contact_groups":
+                    value = ",".join(value)
+                if key == "dns_ip":
+                    value = ",".join(value)
+                if key == "status_codes":
+                    value = ",".join(value)
+                if key == "tags":
+                    value = ",".join(value)
             self._request("post", self.url, data=self.config)
             if self.response.status_code == 201:
                 self.id = int(self.response.json()["data"]["new_id"])
