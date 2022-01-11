@@ -1,0 +1,4 @@
+statuscake_api_key: ""
+statuscake_default_check_rate: 300
+statuscake_default_test_type: HTTP
+statuscake_uptime_tests: []

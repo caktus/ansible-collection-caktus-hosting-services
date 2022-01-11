@@ -1,0 +1,22 @@
+- name: Merge statuscake_uptime_tests with templates
+  set_fact:
+    merged_statuscake_uptime_tests: "{{ (merged_statuscake_uptime_tests | default([])) + [ item['template'] | default([]) | combine(item) ] }}"
+  loop: "{{ statuscake_uptime_tests }}"
+  loop_control:
+    label: "{{ item['name'] }}"
+
+- name: Configure uptime tests
+  caktus.tech_support.statuscake_uptime_test:
+    api_key: "{{ statuscake_api_key }}"
+    state: "{{ item['state'] }}"
+    name: "{{ item['name'] }}"
+    check_rate: "{{ item['check_rate']|default(statuscake_default_check_rate) }}"
+    test_type: "{{ item['test_type']|default(statuscake_default_test_type) }}"
+    website_url: "{{ item['website_url'] }}"
+    basic_user: "{{ item['basic_user']|default(omit) }}"
+    basic_pass: "{{ item['basic_pass']|default(omit) }}"
+    tags_csv: "{{ item['tags_csv']|default(omit) }}"
+    contact_groups_csv: "{{ item['contact_groups_csv']|default(omit) }}"
+  loop: "{{ merged_statuscake_uptime_tests }}"
+  loop_control:
+    label: "{{ item['name'] }}"
