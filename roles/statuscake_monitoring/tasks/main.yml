@@ -17,6 +17,8 @@
     basic_pass: "{{ item['basic_pass']|default(omit) }}"
     tags_csv: "{{ item['tags_csv']|default(omit) }}"
     contact_groups_csv: "{{ item['contact_groups_csv']|default(omit) }}"
+    final_endpoint: "{{ item['final_endpoint']|default(omit) }}"
+    follow_redirects: "{{ item['follow_redirects']|default(omit) }}"
   loop: "{{ merged_statuscake_uptime_tests }}"
   loop_control:
     label: "{{ item['name'] }}"
