@@ -6,7 +6,7 @@
     label: "{{ item['name'] }}"
 
 - name: Configure uptime tests
-  caktus.tech_support.statuscake_uptime_test:
+  caktus.hosting_services.statuscake_uptime_test:
     api_key: "{{ statuscake_api_key }}"
     state: "{{ item['state'] }}"
     name: "{{ item['name'] }}"
