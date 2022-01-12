@@ -1,3 +1,3 @@
-# Ansible Collection - caktus.tech_support
+# Ansible Collection - caktus.hosting_services
 
 Documentation for the collection.
