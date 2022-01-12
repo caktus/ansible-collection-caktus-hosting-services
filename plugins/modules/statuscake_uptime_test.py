@@ -1,6 +1,6 @@
 from ansible.module_utils.basic import AnsibleModule
 
-from ansible_collections.caktus.tech_support.plugins.module_utils.statuscake import (
+from ansible_collections.caktus.hosting_services.plugins.module_utils.statuscake import (
     UptimeTest,
 )
 
