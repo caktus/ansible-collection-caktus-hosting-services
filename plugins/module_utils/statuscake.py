@@ -129,11 +129,24 @@ class UptimeTest(StatusCakeAPI):
         https://www.statuscake.com/api/v1/#operation/update-uptime-test
         """
         if self.id:
-            pre_update = self.retrieve()
+            # Website_url and test_type are immutable in Statuscake API
+            # Notifies user if they attempt to change them
+            fetch_tests = self.retrieve()
+            if fetch_tests:
+                if fetch_tests["website_url"] != self.config[
+                    "website_url"
+                ] or fetch_tests["test_type"] != self.config.get("test_type", "HTTP"):
+                    self.status.success = False
+                    self.status.changed = False
+                    msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."
+                    logger.info(msg)
+                    self.status.message = msg
+
+            # Does put request on tests
             self._request("put", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 204:
-                post_update = self.retrieve()
-                difference = dic_difference(pre_update, post_update)
+                fetch_updated_tests = self.retrieve()
+                difference = dic_difference(fetch_tests, fetch_updated_tests)
                 self.status.success = True
                 self.status.changed = bool(difference)
                 msg = f"Changes (old, new): {difference}" if difference else ""
