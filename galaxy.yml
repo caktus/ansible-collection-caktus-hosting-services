@@ -43,7 +43,7 @@ tags: []
 dependencies: {}
 
 # The URL of the originating SCM repository
-repository: https://github.com/caktus/ansible-collection-caktus-tech-support
+repository: https://github.com/caktus/ansible-collection-caktus-hosting-services
 
 # The URL to any online docs
 documentation: http://docs.example.com
