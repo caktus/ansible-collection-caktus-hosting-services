@@ -47,6 +47,9 @@ class StatusCakeAPI:
     def full_url(self, path):
         return f"https://api.statuscake.com{path}"
 
+    def prepare_data(self, data):
+        return data
+
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
         try:
@@ -54,6 +57,7 @@ class StatusCakeAPI:
             for key, val in kwargs["data"].items():
                 if val:
                     data[key] = val
+            data = self.prepare_data(data)
             kwargs["data"] = data
             logger.debug(f"Request data: {kwargs['data']}")
         except KeyError:
@@ -66,6 +70,7 @@ class StatusCakeAPI:
 class UptimeTest(StatusCakeAPI):
 
     url = "/v1/uptime"
+    CSV_PARAMETERS = ("tags", "contact_groups", "dns_ip", "status_codes")
 
     def fetch_all(self):
         self._request("get", self.url)
@@ -82,6 +87,16 @@ class UptimeTest(StatusCakeAPI):
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
                 return test
+
+    def prepare_data(self, data):
+        for key in self.CSV_PARAMETERS:
+            if key in data:
+                key_csv = f"{key}_csv"
+                item = [str(_val) for _val in data[key]]
+                item_csv = ",".join(item)
+                data[key_csv] = item_csv
+                data.pop(key)
+        return data
 
     def retrieve(self):
         """
@@ -105,15 +120,6 @@ class UptimeTest(StatusCakeAPI):
             if "check_rate" not in self.config:
                 self.config["check_rate"] = 300
             # Convert all _csv arguments to expect lists rather than strings
-            for key, value in self.config.items():
-                if key == "contact_groups":
-                    value = ",".join(value)
-                if key == "dns_ip":
-                    value = ",".join(value)
-                if key == "status_codes":
-                    value = ",".join(value)
-                if key == "tags":
-                    value = ",".join(value)
             self._request("post", self.url, data=self.config)
             if self.response.status_code == 201:
                 self.id = int(self.response.json()["data"]["new_id"])
@@ -142,7 +148,6 @@ class UptimeTest(StatusCakeAPI):
                     logger.info(msg)
                     self.status.message = msg
 
-            # Does put request on tests
             self._request("put", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 204:
                 fetch_updated_tests = self.retrieve()
