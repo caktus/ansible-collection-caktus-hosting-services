@@ -149,7 +149,6 @@ class UptimeTest(StatusCakeAPI):
                     logger.info(msg)
                     self.status.message = msg
 
-            self.prepare_data(self.config)
             self._request("put", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 204:
                 fetch_updated_tests = self.retrieve()
