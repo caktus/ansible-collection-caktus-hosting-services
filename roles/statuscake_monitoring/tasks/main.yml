@@ -19,6 +19,7 @@
     contact_groups: "{{ item['contact_groups']|default(omit) }}"
     final_endpoint: "{{ item['final_endpoint']|default(omit) }}"
     follow_redirects: "{{ item['follow_redirects']|default(omit) }}"
+    log_file: "{{ item['log_file']|default(omit) }}"
   loop: "{{ merged_statuscake_uptime_tests }}"
   loop_control:
     label: "{{ item['name'] }}"
