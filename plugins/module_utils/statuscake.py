@@ -147,6 +147,7 @@ class UptimeTest(StatusCakeAPI):
                     msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."
                     logger.info(msg)
                     self.status.message = msg
+                    return
 
             self._request("put", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 204:
