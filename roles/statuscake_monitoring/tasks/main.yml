@@ -23,3 +23,7 @@
   loop: "{{ merged_statuscake_uptime_tests }}"
   loop_control:
     label: "{{ item['name'] }}"
+
+- name: Clean up variables
+  set_fact:
+    merged_statuscake_uptime_tests: []
