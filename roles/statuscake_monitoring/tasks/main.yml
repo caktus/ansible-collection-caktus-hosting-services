@@ -1,6 +1,6 @@
 - name: Merge statuscake_uptime_tests with templates
   set_fact:
-    merged_statuscake_uptime_tests: "{{ (merged_statuscake_uptime_tests | default([])) + [ item['template'] | default([]) | combine(item) ] }}"
+    statuscake_merged_uptime_tests: "{{ (statuscake_merged_uptime_tests | default([])) + [ item['template'] | default({}) | combine(item) ] }}"
   loop: "{{ statuscake_uptime_tests }}"
   loop_control:
     label: "{{ item['name'] }}"
@@ -20,10 +20,10 @@
     final_endpoint: "{{ item['final_endpoint']|default(omit) }}"
     follow_redirects: "{{ item['follow_redirects']|default(omit) }}"
     log_file: "{{ item['log_file']|default(omit) }}"
-  loop: "{{ merged_statuscake_uptime_tests }}"
+  loop: "{{ statuscake_merged_uptime_tests }}"
   loop_control:
     label: "{{ item['name'] }}"
 
-- name: Clean up variables
+- name: Clean up StatusCake variables
   set_fact:
-    merged_statuscake_uptime_tests: []
+    statuscake_merged_uptime_tests: []
