@@ -207,11 +207,11 @@ class SSLTest(StatusCakeAPI):
         return []
 
     def find_by_website_url(self):
+        provided_url = self.config["website_url"].replace("www.", "")
         for test in self.fetch_all():
-            if (
-                test["website_url"]
-                == self.config["website_url"].replace("www.", "")[:-1]
-            ):
+            if provided_url[-1] == "/":
+                provided_url = provided_url[:-1]
+            if test["website_url"] == provided_url:
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
                 return test
