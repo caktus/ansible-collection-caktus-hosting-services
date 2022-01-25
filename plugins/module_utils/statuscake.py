@@ -1,4 +1,5 @@
 import logging
+from tkinter import S
 import requests
 import yaml
 import sys
@@ -192,6 +193,30 @@ class UptimeTest(StatusCakeAPI):
         return self.status
 
 
+class SSLTest(StatusCakeAPI):
+
+    url = "/v1/ssl"
+
+    def fetch_all(self):
+        self._request("get", self.url)
+        if self.response.status_code == 200:
+            # logger.info(
+            #     "All SSL checks in StatusCake: %s", self.response.json()["data"]
+            # )
+            return self.response.json()["data"]
+        return []
+
+    def find_by_website_url(self):
+        for test in self.fetch_all():
+            if (
+                test["website_url"]
+                == self.config["website_url"].replace("www.", "")[:-1]
+            ):
+                logger.debug(f"Fetched data: {test}")
+                self.id = test["id"]
+                return test
+
+
 if __name__ == "__main__":
     # argparse argument
     parser = argparse.ArgumentParser(
@@ -219,14 +244,8 @@ if __name__ == "__main__":
 
     data_loaded = yaml.safe_load(open(parser_file, "r"))
 
-    for uptime_test in data_loaded["uptime_tests"]:
-        if uptime_test["name"]:
-            test = UptimeTest(api_key=data_loaded["api_key"], **uptime_test)
-            # result = test.retrieve()
-            status = test.sync()
-            if status.changed:
-                logger.info(status)
-            # if result.success:
-            #     module.exit_json(changed=result.changed, msg=result.msg)
-            # else:
-            #     module.fail_json(msg=result.msg)
+    for ssl_test in data_loaded["ssl_tests"]:
+        if ssl_test["website_url"]:
+            test = SSLTest(api_key=data_loaded["api_key"], **ssl_test)
+            test.find_by_website_url()
+            print(test.find_by_website_url())
