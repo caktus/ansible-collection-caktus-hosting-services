@@ -198,15 +198,20 @@ class SSLTest(StatusCakeAPI):
     url = "/v1/ssl"
 
     def fetch_all(self):
+        """
+        Retrieve all SSL tests
+        https://www.statuscake.com/api/v1/#operation/list-ssl-tests
+        """
         self._request("get", self.url)
         if self.response.status_code == 200:
-            # logger.info(
-            #     "All SSL checks in StatusCake: %s", self.response.json()["data"]
-            # )
+            logger.debug(
+                "All SSL checks in StatusCake: %s", self.response.json()["data"]
+            )
             return self.response.json()["data"]
         return []
 
-    def find_by_website_url(self):
+    def find_by_name(self):
+        """Retrieve test using website_url"""
         provided_url = self.config["website_url"].replace("www.", "")
         for test in self.fetch_all():
             if provided_url[-1] == "/":
@@ -215,6 +220,17 @@ class SSLTest(StatusCakeAPI):
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
                 return test
+
+    def retrieve(self):
+        """
+        Rerieve an SSL test with an id
+        https://www.statuscake.com/api/v1/#operation/get-ssl-test
+        """
+        self.find_by_name()
+        if self.id:
+            self._request("get", f"{self.url}/{self.id}", data=self.config)
+            if self.response.status_code == 200:
+                return self.response.json()["data"]
 
 
 if __name__ == "__main__":
@@ -247,5 +263,4 @@ if __name__ == "__main__":
     for ssl_test in data_loaded["ssl_tests"]:
         if ssl_test["website_url"]:
             test = SSLTest(api_key=data_loaded["api_key"], **ssl_test)
-            test.find_by_website_url()
-            print(test.find_by_website_url())
+            print(test.retrieve())
