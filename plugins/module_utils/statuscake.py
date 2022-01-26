@@ -211,7 +211,7 @@ class SSLTest(StatusCakeAPI):
             return self.response.json()["data"]
         return []
 
-    def find_by_name(self):
+    def find_by_website_url(self):
         """Retrieve test using website_url"""
         provided_url = self.config["website_url"].replace("www.", "")
         for test in self.fetch_all():
@@ -234,13 +234,16 @@ class SSLTest(StatusCakeAPI):
 
     def retrieve(self):
         """
-        Rerieve an SSL test with an id.
+        Rerieve an SSL test via its id.
         https://www.statuscake.com/api/v1/#operation/get-ssl-test
         """
-        self.find_by_name()
+        self.find_by_website_url()
+        print("Found by url")
         if self.id:
+            print("Inside the ID")
             self._request("get", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 200:
+                print("Sent request and got back a 200")
                 return self.response.json()["data"]
 
     def create(self):
@@ -268,6 +271,26 @@ class SSLTest(StatusCakeAPI):
                 self.status.success = True
                 self.status.changed = True
                 self.status.message = msg
+
+    def update(self):
+        """
+        Update an existing SSL test
+        https://www.statuscake.com/api/v1/#operation/update-ssl-test
+        """
+        # if self.id:
+        print("Update was hit")
+        pre_update_tests = self.retrieve()
+        # breakpoint()
+        self._request("put", f"{self.url}/{self.id}", data=self.config)
+        # if self.response.status_code == 204:
+        fetch_updated_tests = self.retrieve()
+        difference = dic_difference(pre_update_tests, fetch_updated_tests)
+        self.status.success = True
+        self.status.changed = bool(difference)
+        msg = f"Changes (old, new): {difference}" if difference else ""
+        self.status.message = msg
+        if msg:
+            logger.info(msg)
 
 
 if __name__ == "__main__":
@@ -300,4 +323,7 @@ if __name__ == "__main__":
     for ssl_test in data_loaded["ssl_tests"]:
         if ssl_test["website_url"]:
             test = SSLTest(api_key=data_loaded["api_key"], **ssl_test)
-            print(test.create())
+            # print(test.update())
+            print(test.retrieve())
+            # print(test.create())
+            # print(test.find_by_website_url())
