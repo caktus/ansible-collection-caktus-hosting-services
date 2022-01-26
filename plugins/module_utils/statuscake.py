@@ -34,7 +34,7 @@ class StatusCakeAPI:
         self.api_key = api_key
         self.state = state
         self.id = None
-        self.config = kwargs
+        self.config = self.prepare_data(kwargs)
         self.client = requests.Session()
         self.client.headers["Authorization"] = f"Bearer {self.api_key}"
         self.status = Status()
@@ -64,6 +64,7 @@ class StatusCakeAPI:
         except KeyError:
             pass
         response = requests_method(self.full_url(path), **kwargs)
+        breakpoint()
         self.response = response
         return response
 
@@ -179,7 +180,7 @@ class UptimeTest(StatusCakeAPI):
         self.status.message = msg
 
     def sync(self):
-        self.retrieve()
+        self.find_by_name()
         logger.info(
             f"Does '{self.config['name']}' exist in StatusCake? {bool(self.id)}."
         )
@@ -213,10 +214,8 @@ class SSLTest(StatusCakeAPI):
 
     def find_by_website_url(self):
         """Retrieve test using website_url"""
-        provided_url = self.config["website_url"].replace("www.", "")
+        provided_url = self.config["website_url"]
         for test in self.fetch_all():
-            if provided_url[-1] == "/":
-                provided_url = provided_url[:-1]
             if test["website_url"] == provided_url:
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
@@ -230,6 +229,8 @@ class SSLTest(StatusCakeAPI):
                 item_csv = ",".join(item)
                 data[key_csv] = item_csv
                 data.pop(key)
+        if not data["website_url"].endswith("/"):
+            data["website_url"] = data["website_url"] + "/"
         return data
 
     def retrieve(self):
@@ -238,12 +239,9 @@ class SSLTest(StatusCakeAPI):
         https://www.statuscake.com/api/v1/#operation/get-ssl-test
         """
         self.find_by_website_url()
-        print("Found by url")
         if self.id:
-            print("Inside the ID")
             self._request("get", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 200:
-                print("Sent request and got back a 200")
                 return self.response.json()["data"]
 
     def create(self):
@@ -277,20 +275,33 @@ class SSLTest(StatusCakeAPI):
         Update an existing SSL test
         https://www.statuscake.com/api/v1/#operation/update-ssl-test
         """
-        # if self.id:
-        print("Update was hit")
-        pre_update_tests = self.retrieve()
-        # breakpoint()
-        self._request("put", f"{self.url}/{self.id}", data=self.config)
-        # if self.response.status_code == 204:
-        fetch_updated_tests = self.retrieve()
-        difference = dic_difference(pre_update_tests, fetch_updated_tests)
-        self.status.success = True
-        self.status.changed = bool(difference)
-        msg = f"Changes (old, new): {difference}" if difference else ""
-        self.status.message = msg
-        if msg:
-            logger.info(msg)
+        self.find_by_website_url()
+        if self.id:
+            pre_update_tests = self.retrieve()
+            self._request("put", f"{self.url}/{self.id}", data=self.config)
+            if self.response.status_code == 204:
+                fetch_updated_tests = self.retrieve()
+                difference = dic_difference(pre_update_tests, fetch_updated_tests)
+                self.status.success = True
+                self.status.changed = bool(difference)
+                msg = f"Changes (old, new): {difference}" if difference else ""
+                self.status.message = msg
+                if msg:
+                    logger.info(msg)
+
+    def sync(self):
+        self.find_by_website_url()
+        logger.info(
+            f"Does '{self.config['website_url']}' exist in StatusCake? {bool(self.id)}."
+        )
+        if self.state == "present":
+            if self.id:
+                self.update()
+            else:
+                self.create()
+        else:
+            self.delete()
+        return self.status
 
 
 if __name__ == "__main__":
@@ -323,7 +334,7 @@ if __name__ == "__main__":
     for ssl_test in data_loaded["ssl_tests"]:
         if ssl_test["website_url"]:
             test = SSLTest(api_key=data_loaded["api_key"], **ssl_test)
-            # print(test.update())
-            print(test.retrieve())
+            print(test.sync())
+            # print(test.retrieve())
             # print(test.create())
             # print(test.find_by_website_url())
