@@ -196,6 +196,7 @@ class UptimeTest(StatusCakeAPI):
 class SSLTest(StatusCakeAPI):
 
     url = "/v1/ssl"
+    CSV_PARAMETERS = ("alert_at", "contact_groups")
 
     def fetch_all(self):
         """
@@ -221,9 +222,19 @@ class SSLTest(StatusCakeAPI):
                 self.id = test["id"]
                 return test
 
+    def prepare_data(self, data):
+        for key in self.CSV_PARAMETERS:
+            if key in data:
+                key_csv = f"{key}_csv"
+                item = [str(_val) for _val in data[key]]
+                item_csv = ",".join(item)
+                data[key_csv] = item_csv
+                data.pop(key)
+        return data
+
     def retrieve(self):
         """
-        Rerieve an SSL test with an id
+        Rerieve an SSL test with an id.
         https://www.statuscake.com/api/v1/#operation/get-ssl-test
         """
         self.find_by_name()
@@ -231,6 +242,32 @@ class SSLTest(StatusCakeAPI):
             self._request("get", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 200:
                 return self.response.json()["data"]
+
+    def create(self):
+        """
+        Create an SSL test.
+        https://www.statuscake.com/api/v1/#operation/create-ssl-test
+        """
+        if not self.id:
+            if "check_rate" not in self.config:
+                self.config["check_rate"] = 1800
+            if "alert_reminder" not in self.config:
+                self.config["alert_reminder"] = True
+            if "alert_expiry" not in self.config:
+                self.config["alert_expiry"] = True
+            if "alert_broken" not in self.config:
+                self.config["alert_broken"] = True
+            if "alert_mixed" not in self.config:
+                self.config["alert_mixed"] = True
+            # All _csv parameters (CSV_PARAMETERS) are converted to expect lists rather than strings
+            self._request("post", self.url, data=self.config)
+            if self.response.status_code == 201:
+                self.id = int(self.response.json()["data"]["new_id"])
+                msg = f"A new test for '{self.config['website_url']}' was created."
+                logger.info(msg)
+                self.status.success = True
+                self.status.changed = True
+                self.status.message = msg
 
 
 if __name__ == "__main__":
@@ -263,4 +300,4 @@ if __name__ == "__main__":
     for ssl_test in data_loaded["ssl_tests"]:
         if ssl_test["website_url"]:
             test = SSLTest(api_key=data_loaded["api_key"], **ssl_test)
-            print(test.retrieve())
+            print(test.create())
