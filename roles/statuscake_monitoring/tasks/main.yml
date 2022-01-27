@@ -27,3 +27,35 @@
 - name: Clean up StatusCake variables
   set_fact:
     statuscake_merged_uptime_tests: []
+
+- name: Merge statuscake_ssl_tests with templates
+  set_fact:
+    statuscake_merged_ssl_tests: "{{ (statuscake_merged_ssl_tests | default([])) + [ item['template'] | default({}) | combine(item) ] }}"
+  loop: "{{ statuscake_ssl_tests }}"
+  loop_control:
+    label: "{{ item['name'] }}"
+
+- name: Configure ssl tests
+  caktus.hosting_services.statuscake_ssl_test:
+    api_key: "{{ statuscake_api_key }}"
+    state: "{{ item['state'] }}"
+    website_url: "{{ item['website_url'] }}"
+    check_rate: "{{ item['check_rate']|default(statuscake_ssl_default_check_rate) }}"
+    contact_groups: "{{ item['contact_groups']|default(omit) }}"
+    alert_at: "{{ item['alert_at']|default(statuscake_ssl_default_alert_at) }}"
+    alert_reminder: "{{ item['alert_reminder']|default(statuscake_ssl_default_alert_reminder) }}"
+    alert_expiry: "{{ item['alert_expiry']|default(statuscake_ssl_default_alert_expiry) }}"
+    alert_broken: "{{ item['alert_broken']|default(statuscake_ssl_default_alert_broken) }}"
+    alert_mixed: "{{ item['alert_mixed']|default(statuscake_ssl_default_alert_mixed) }}"
+    follow_redirects: "{{ item['follow_redirects']|default(omit) }}"
+    paused: "{{ item['paused']|default(omit) }}"
+    hostname: "{{ item['hostname']|default(omit) }}"
+    user_agent: "{{ item['user_agent']|default(omit) }}"
+    log_file: "{{ item['log_file']|default(omit) }}"
+  loop: "{{ statuscake_merged_ssl_tests }}"
+  loop_control:
+    label: "{{ item['website_url'] }}"
+
+- name: Clean up StatusCake variables
+  set_fact:
+    statuscake_merged_ssl_tests: []
