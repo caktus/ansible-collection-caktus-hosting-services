@@ -64,7 +64,6 @@ class StatusCakeAPI:
         except KeyError:
             pass
         response = requests_method(self.full_url(path), **kwargs)
-        # breakpoint()
         self.response = response
         return response
 
