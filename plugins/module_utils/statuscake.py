@@ -64,7 +64,7 @@ class StatusCakeAPI:
         except KeyError:
             pass
         response = requests_method(self.full_url(path), **kwargs)
-        breakpoint()
+        # breakpoint()
         self.response = response
         return response
 
@@ -288,6 +288,22 @@ class SSLTest(StatusCakeAPI):
                 self.status.message = msg
                 if msg:
                     logger.info(msg)
+
+    def delete(self):
+        """
+        Delete a SSL test.
+        https://www.statuscake.com/api/v1/#operation/delete-ssl-test
+        """
+        if self.id:
+            self._request("delete", f"{self.url}/{self.id}")
+            if self.response.status_code == 204:
+                msg = f"The test for '{self.config['website_url']}' was deleted"
+                self.status.success = True
+                self.status.changed = True
+        else:
+            self.status.success = True
+            msg = f"'{self.config['website_url']}' SSL test not found for deletion"
+        self.status.message = msg
 
     def sync(self):
         self.find_by_website_url()
