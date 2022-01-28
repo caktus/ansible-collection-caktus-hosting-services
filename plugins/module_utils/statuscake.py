@@ -33,7 +33,7 @@ class StatusCakeAPI:
         self.api_key = api_key
         self.state = state
         self.id = None
-        self.config = kwargs
+        self.config = self.prepare_data(kwargs)
         self.client = requests.Session()
         self.client.headers["Authorization"] = f"Bearer {self.api_key}"
         self.status = Status()
@@ -178,9 +178,135 @@ class UptimeTest(StatusCakeAPI):
         self.status.message = msg
 
     def sync(self):
-        self.retrieve()
+        self.find_by_name()
         logger.info(
             f"Does '{self.config['name']}' exist in StatusCake? {bool(self.id)}."
+        )
+        if self.state == "present":
+            if self.id:
+                self.update()
+            else:
+                self.create()
+        else:
+            self.delete()
+        return self.status
+
+
+class SSLTest(StatusCakeAPI):
+
+    url = "/v1/ssl"
+    CSV_PARAMETERS = ("alert_at", "contact_groups")
+
+    def fetch_all(self):
+        """
+        Retrieve all SSL tests
+        https://www.statuscake.com/api/v1/#operation/list-ssl-tests
+        """
+        self._request("get", self.url)
+        if self.response.status_code == 200:
+            logger.debug(
+                "All SSL checks in StatusCake: %s", self.response.json()["data"]
+            )
+            return self.response.json()["data"]
+        return []
+
+    def find_by_website_url(self):
+        """Retrieve test using website_url"""
+        provided_url = self.config["website_url"]
+        for test in self.fetch_all():
+            if test["website_url"] == provided_url:
+                logger.debug(f"Fetched data: {test}")
+                self.id = test["id"]
+                return test
+
+    def prepare_data(self, data):
+        for key in self.CSV_PARAMETERS:
+            if key in data:
+                key_csv = f"{key}_csv"
+                item = [str(_val) for _val in data[key]]
+                item_csv = ",".join(item)
+                data[key_csv] = item_csv
+                data.pop(key)
+        if not data["website_url"].endswith("/"):
+            data["website_url"] = data["website_url"] + "/"
+        return data
+
+    def retrieve(self):
+        """
+        Rerieve an SSL test via its id.
+        https://www.statuscake.com/api/v1/#operation/get-ssl-test
+        """
+        self.find_by_website_url()
+        if self.id:
+            self._request("get", f"{self.url}/{self.id}", data=self.config)
+            if self.response.status_code == 200:
+                return self.response.json()["data"]
+
+    def create(self):
+        """
+        Create an SSL test.
+        https://www.statuscake.com/api/v1/#operation/create-ssl-test
+        """
+        if not self.id:
+            if "check_rate" not in self.config:
+                self.config["check_rate"] = 1800
+            if "alert_reminder" not in self.config:
+                self.config["alert_reminder"] = True
+            if "alert_expiry" not in self.config:
+                self.config["alert_expiry"] = True
+            if "alert_broken" not in self.config:
+                self.config["alert_broken"] = True
+            if "alert_mixed" not in self.config:
+                self.config["alert_mixed"] = True
+            # All _csv parameters (CSV_PARAMETERS) are converted to expect lists rather than strings
+            self._request("post", self.url, data=self.config)
+            if self.response.status_code == 201:
+                self.id = int(self.response.json()["data"]["new_id"])
+                msg = f"A new test for '{self.config['website_url']}' was created."
+                logger.info(msg)
+                self.status.success = True
+                self.status.changed = True
+                self.status.message = msg
+
+    def update(self):
+        """
+        Update an existing SSL test
+        https://www.statuscake.com/api/v1/#operation/update-ssl-test
+        """
+        self.find_by_website_url()
+        if self.id:
+            pre_update_tests = self.retrieve()
+            self._request("put", f"{self.url}/{self.id}", data=self.config)
+            if self.response.status_code == 204:
+                fetch_updated_tests = self.retrieve()
+                difference = dic_difference(pre_update_tests, fetch_updated_tests)
+                self.status.success = True
+                self.status.changed = bool(difference)
+                msg = f"Changes (old, new): {difference}" if difference else ""
+                self.status.message = msg
+                if msg:
+                    logger.info(msg)
+
+    def delete(self):
+        """
+        Delete a SSL test.
+        https://www.statuscake.com/api/v1/#operation/delete-ssl-test
+        """
+        if self.id:
+            self._request("delete", f"{self.url}/{self.id}")
+            if self.response.status_code == 204:
+                msg = f"The test for '{self.config['website_url']}' was deleted"
+                self.status.success = True
+                self.status.changed = True
+        else:
+            self.status.success = True
+            msg = f"'{self.config['website_url']}' SSL test not found for deletion"
+        self.status.message = msg
+
+    def sync(self):
+        self.find_by_website_url()
+        logger.info(
+            f"Does '{self.config['website_url']}' exist in StatusCake? {bool(self.id)}."
         )
         if self.state == "present":
             if self.id:
@@ -219,14 +345,10 @@ if __name__ == "__main__":
 
     data_loaded = yaml.safe_load(open(parser_file, "r"))
 
-    for uptime_test in data_loaded["uptime_tests"]:
-        if uptime_test["name"]:
-            test = UptimeTest(api_key=data_loaded["api_key"], **uptime_test)
-            # result = test.retrieve()
-            status = test.sync()
-            if status.changed:
-                logger.info(status)
-            # if result.success:
-            #     module.exit_json(changed=result.changed, msg=result.msg)
-            # else:
-            #     module.fail_json(msg=result.msg)
+    for ssl_test in data_loaded["ssl_tests"]:
+        if ssl_test["website_url"]:
+            test = SSLTest(api_key=data_loaded["api_key"], **ssl_test)
+            print(test.sync())
+            # print(test.retrieve())
+            # print(test.create())
+            # print(test.find_by_website_url())
