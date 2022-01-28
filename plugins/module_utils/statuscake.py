@@ -1,5 +1,4 @@
 import logging
-from tkinter import S
 import requests
 import yaml
 import sys
