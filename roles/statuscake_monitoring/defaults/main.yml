@@ -7,7 +7,7 @@ statuscake_merged_uptime_tests: []
 
 # SSL tests defaults
 statuscake_ssl_default_check_rate: 86400
-statuscake_ssl_default_alert_at: [1, 2, 3]
+statuscake_ssl_default_alert_at: [1, 2, 3] # Comma separated list representing when alerts should be sent (days). Must be exactly 3 numerical values
 statuscake_ssl_default_alert_reminder: True
 statuscake_ssl_default_alert_expiry: True
 statuscake_ssl_default_alert_broken: True
