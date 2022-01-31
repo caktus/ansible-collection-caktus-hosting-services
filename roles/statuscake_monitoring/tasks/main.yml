@@ -52,7 +52,7 @@
     statuscake_merged_ssl_tests: "{{ (statuscake_merged_ssl_tests | default([])) + [ item['template'] | default({}) | combine(item) ] }}"
   loop: "{{ statuscake_ssl_tests }}"
   loop_control:
-    label: "{{ item['name'] }}"
+    label: "{{ item['website_url'] }}"
 
 - name: Configure ssl tests
   caktus.hosting_services.statuscake_ssl_test:

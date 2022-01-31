@@ -48,17 +48,15 @@ class StatusCakeAPI:
         return f"https://api.statuscake.com{path}"
 
     def prepare_data(self, data):
-        return data
+        cleaned_data = {}
+        for key, val in data.items():
+            if val:
+                cleaned_data[key] = val
+        return cleaned_data
 
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
         try:
-            data = {}
-            for key, val in kwargs["data"].items():
-                if val:
-                    data[key] = val
-            data = self.prepare_data(data)
-            kwargs["data"] = data
             logger.debug(f"Request data: {kwargs['data']}")
         except KeyError:
             pass
@@ -89,6 +87,7 @@ class UptimeTest(StatusCakeAPI):
                 return test
 
     def prepare_data(self, data):
+        data = super().prepare_data(data)
         for key in self.CSV_PARAMETERS:
             if key in data:
                 key_csv = f"{key}_csv"
@@ -220,6 +219,7 @@ class SSLTest(StatusCakeAPI):
                 return test
 
     def prepare_data(self, data):
+        data = super().prepare_data(data)
         for key in self.CSV_PARAMETERS:
             if key in data:
                 key_csv = f"{key}_csv"

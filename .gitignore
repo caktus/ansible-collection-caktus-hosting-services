@@ -135,3 +135,6 @@ config.yml
 .gitignore
 .DS_Store
 api_playground.py
+
+.vscode/
+.gitignore

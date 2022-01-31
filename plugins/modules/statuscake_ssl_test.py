@@ -15,7 +15,7 @@ def main():
             "choices": [300, 600, 1800, 86400, 2073600],
         },
         "contact_groups": {"required": False, "type": "list"},
-        "alert_at": {"required": True, "type": "bool"},
+        "alert_at": {"required": True, "type": "list"},
         "alert_reminder": {"required": True, "type": "bool"},
         "alert_expiry": {"required": True, "type": "bool"},
         "alert_broken": {"required": True, "type": "bool"},
