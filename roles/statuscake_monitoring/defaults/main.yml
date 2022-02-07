@@ -1,14 +1,47 @@
 # Uptime tests defaults
 statuscake_api_key: ""
-statuscake_default_check_rate: 300
-statuscake_default_test_type: HTTP
-statuscake_uptime_tests: []
-statuscake_merged_uptime_tests: []
+statuscake_test_types: [uptime, ssl]
+statuscake_basic_username: ""
+statuscake_basic_password: ""
+statuscake_check_rate: 300
+statuscake_contact_groups: null
+statuscake_final_endpoint: null
+statuscake_follow_redirects: null
+statuscake_log_file: ""
+statuscake_find_string: ""
+statuscake_confirmation: 2
+statuscake_custom_header: ""
+statuscake_do_not_find: False
+statuscake_dns_ip: null
+statuscake_dns_server: ""
+statuscake_enable_ssl_alert: False
+statuscake_host: ""
+statuscake_include_header: False
+statuscake_paused: False
+statuscake_port: null
+statuscake_post_body: ""
+statuscake_post_raw: ""
+statuscake_regions: null
+statuscake_state: present
+statuscake_status_codes: ['204', '205', '206', '303', '400', '401', '403', '404', '405', '406', '408', '410', '413', '444', '429', '494', '495', '496', '499', '500', '501', '502', '503', '504', '505', '506', '507', '508', '509', '510', '511', '521', '522', '523', '524', '520', '598', '599']
+statuscake_tags: null
+statuscake_test_type: HTTP
+statuscake_timeout: ""
+statuscake_trigger_rate: ""
+statuscake_use_jar: ""
+statuscake_user_agent: ""
 
 # SSL tests defaults
-statuscake_ssl_default_check_rate: 86400
-statuscake_ssl_default_alert_at: [28, 7, 1] # Comma separated list representing days before a cert expirs. Alert 28, 7, and 1 day before.
-statuscake_ssl_default_alert_reminder: True
-statuscake_ssl_default_alert_expiry: True
-statuscake_ssl_default_alert_broken: True
-statuscake_ssl_default_alert_mixed: True
+statuscake_ssl_alert_at: [28, 7, 1] # Comma separated list representing days to be notified before a cert expires. EG: Alert 28, 7, and 1 day before.
+statuscake_ssl_alert_broken: True
+statuscake_ssl_alert_expiry: True
+statuscake_ssl_alert_mixed: True
+statuscake_ssl_alert_reminder: True
+statuscake_ssl_follow_redirects: False
+statuscake_ssl_check_rate: 86400
+statuscake_ssl_contact_groups: "{{ statuscake_contact_groups }}"
+statuscake_ssl_hostname: null
+statuscake_ssl_log_file: ""
+statuscake_ssl_paused: "{{ statuscake_paused }}"
+statuscake_ssl_state: "{{ statuscake_state }}"
+statuscake_ssl_user_agent: ""

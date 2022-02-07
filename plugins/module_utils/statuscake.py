@@ -262,7 +262,7 @@ class SSLTest(StatusCakeAPI):
             self._request("post", self.url, data=self.config)
             if self.response.status_code == 201:
                 self.id = int(self.response.json()["data"]["new_id"])
-                msg = f"A new test for '{self.config['website_url']}' was created."
+                msg = f"A new SSL test for '{self.config['website_url']}' was created."
                 logger.info(msg)
                 self.status.success = True
                 self.status.changed = True
