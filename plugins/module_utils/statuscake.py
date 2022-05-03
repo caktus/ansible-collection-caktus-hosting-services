@@ -201,10 +201,10 @@ class SSLTest(StatusCakeAPI):
         Retrieve all SSL tests
         https://www.statuscake.com/api/v1/#operation/list-ssl-tests
         """
-        self._request("get", self.url)
+        self._request("get", self.url, params={"page": 1, "limit": 100})
         if self.response.status_code == 200:
             logger.debug(
-                "All SSL checks in StatusCake: %s", self.response.json()["data"]
+                "All SSL checks in StatusCake: %s", self.response.json()
             )
             return self.response.json()["data"]
         return []
