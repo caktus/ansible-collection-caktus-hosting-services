@@ -73,9 +73,7 @@ class UptimeTest(StatusCakeAPI):
     def fetch_all(self):
         self._request("get", self.url, params={"page": 1, "limit": 100})
         if self.response.status_code == 200:
-            logger.debug(
-                "All uptime checks in StatusCake: %s", self.response.json()
-            )
+            logger.debug("All uptime checks in StatusCake: %s", self.response.json())
             return self.response.json()["data"]
         return []
 
@@ -203,9 +201,7 @@ class SSLTest(StatusCakeAPI):
         """
         self._request("get", self.url, params={"page": 1, "limit": 100})
         if self.response.status_code == 200:
-            logger.debug(
-                "All SSL checks in StatusCake: %s", self.response.json()
-            )
+            logger.debug("All SSL checks in StatusCake: %s", self.response.json())
             return self.response.json()["data"]
         return []
 
