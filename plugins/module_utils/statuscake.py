@@ -71,10 +71,10 @@ class UptimeTest(StatusCakeAPI):
     CSV_PARAMETERS = ("tags", "contact_groups", "dns_ip", "status_codes")
 
     def fetch_all(self):
-        self._request("get", self.url)
+        self._request("get", self.url, params={"page": 1, "limit": 100})
         if self.response.status_code == 200:
             logger.debug(
-                "All uptime checks in StatusCake: %s", self.response.json()["data"]
+                "All uptime checks in StatusCake: %s", self.response.json()
             )
             return self.response.json()["data"]
         return []
