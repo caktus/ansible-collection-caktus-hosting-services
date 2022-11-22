@@ -1,0 +1,6 @@
+# This regular expression must match against the defined endpoint;
+# it is used by lineinfile for updating rsyslog.conf.
+# Override if needed.
+rsyslog_forwarding_regexp: papertrailapp
+# Define a papertrail_endpoint in your variables as follows:
+# rsyslog_forwarding_endpoint: "logsN.papertrailapp.com:NNNNN"

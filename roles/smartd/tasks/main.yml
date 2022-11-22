@@ -1,0 +1,19 @@
+- name: Install packages
+  ansible.builtin.apt:
+    pkg:
+      - smartmontools
+
+- name: Configure smartmontools
+  lineinfile:
+    path: /etc/smartd.conf
+    state: present
+    regexp: "^DEVICESCAN"
+    line: >-
+      DEVICESCAN
+      -d removable
+      -n standby
+      {{ '-m' + smartd_admin_email if smartd_admin_email is defined else '' }}
+      -M exec /usr/share/smartmontools/smartd-runner
+      -s {{ smartd_scan_schedule }}
+  notify:
+    - Restart smartd

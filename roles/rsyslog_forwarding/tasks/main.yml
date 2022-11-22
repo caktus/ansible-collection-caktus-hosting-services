@@ -1,0 +1,7 @@
+- name: Forward logs to remote syslog endpoint
+  ansible.builtin.lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: "{{ rsyslog_forwarding_regexp }}"
+    line: "*.* @{{ rsyslog_forwarding_endpoint }}"
+  notify:
+    - Restart rsyslog

@@ -1,0 +1,25 @@
+# Enable passwordless sudo by default
+users_enable_passwordless_sudo: yes
+# In your local variables file, you will need to define the users
+# to add and/or remove, and you may need to tweak other configuration
+# as well. Refer to the main role for further detail:
+# https://github.com/weareinteractive/ansible-users
+
+# Remove default user. You might need to run your playbook initially with
+# "-u ubuntu -e users_remove=[]" until the final users are provisioned.
+# users_remove:
+#   - ubuntu
+
+# Users to provision on servers.
+# Find your ssh key with: `cat ~/.ssh/id_*.pub` (should be one line)
+# Optionally generate password via `mkpasswd -m sha-512 -R 2000000`
+# users:
+#   # in alphabetical order
+#   - username: ...
+#     password: $6$rounds=2000000$....
+#     authorized_keys:
+#       - ssh-ed25519 ...
+
+# You can optionally override the default groups and shell, if needed:
+# users_groups: [adm, dialout, docker, sudo]
+# users_shell: /bin/bash

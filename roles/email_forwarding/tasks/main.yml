@@ -1,0 +1,37 @@
+# Defaults from this role aren't passed to include_role, so use set_fact instead.
+# https://stackoverflow.com/a/65323791/166053
+
+- set_fact:
+    postfix_sasl_user: "{{ email_forwarding_smtp_user }}"
+  when: postfix_sasl_user is not defined
+
+- set_fact:
+    postfix_sasl_password: "{{ email_forwarding_smtp_password }}"
+  when: postfix_sasl_password is not defined
+
+- set_fact:
+    postfix_aliases:
+      - user: "root"
+        alias: "{{ email_forwarding_root_destination }}"
+  when: postfix_aliases is not defined and email_forwarding_root_destination is defined
+
+- set_fact:
+    postfix_relayhost: email-smtp.us-east-1.amazonaws.com
+  when: postfix_relayhost is not defined
+
+- set_fact:
+    postfix_relaytls: true
+  when: postfix_relaytls is not defined
+
+- set_fact:
+    # Override the sender for all mail (not suitable if your
+    # app already sets an acceptable From address):
+    postfix_sender_canonical_maps_database_type: regexp
+    postfix_sender_canonical_maps:
+      - sender: "{{ email_forwarding_rewrite_sender_regexp }}"
+        rewrite: "{{ email_forwarding_rewrite_sender }}"
+  when: email_forwarding_rewrite_sender is defined
+
+- name: Include oefenweb.postfix role
+  include_role:
+    name: oefenweb.postfix
