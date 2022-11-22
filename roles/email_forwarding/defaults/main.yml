@@ -1,4 +1,5 @@
 # At minimum, you must provided credentials for SES (or another email provider):
+# email_forwarding_smtp_host: ""
 # email_forwarding_smtp_user: ""
 # email_forwarding_smtp_password: ""
 

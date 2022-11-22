@@ -16,7 +16,7 @@
   when: postfix_aliases is not defined and email_forwarding_root_destination is defined
 
 - set_fact:
-    postfix_relayhost: email-smtp.us-east-1.amazonaws.com
+    postfix_relayhost: "{{ email_forwarding_smtp_host | default('email-smtp.us-east-1.amazonaws.com') }}"
   when: postfix_relayhost is not defined
 
 - set_fact:
