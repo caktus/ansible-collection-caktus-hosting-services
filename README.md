@@ -22,6 +22,7 @@ Forwards some or all mail via an external SMTP service such as SES, via the `Oef
 
 ```yaml
 # vars file
+email_forwarding_smtp_host: ...
 email_forwarding_smtp_user: AKI...
 email_forwarding_smtp_password: !vault |
   $ANSIBLE_VAULT;1.1;AES256
