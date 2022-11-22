@@ -9,7 +9,7 @@ We aim to support the following operating systems:
 
 ## `hosting_services.email_forwarding`
 
-Forwards some or all mail via an external SMTP service such as SES.
+Forwards some or all mail via an external SMTP service such as SES, via the `Oefenweb.ansible-postfix` role.
 
 ```yaml
 # playbook.yaml
@@ -27,7 +27,7 @@ email_forwarding_smtp_password: !vault |
   $ANSIBLE_VAULT;1.1;AES256
   ...
 
-# Optionally send all mail for root to the configured smartd_admin_email
+# Optionally send all mail for root to the configured address
 email_forwarding_root_destination: "user@example.com"
 
 # Optionally override the sender for all outgoing mail (not suitable if your
