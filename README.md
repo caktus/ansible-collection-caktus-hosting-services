@@ -36,6 +36,7 @@ email_forwarding_rewrite_sender: "yoursite+{{ inventory_hostname | replace('_', 
 ```
 
 Include required role in `requirements.yaml`:
+
 ```yaml
 # requirements.yaml
 roles:
@@ -118,7 +119,6 @@ users:
     password: $6$rounds=2000000$....
     authorized_keys:
       - ssh-ed25519 ...
-
 # You can optionally override the default groups and shell or disable
 # passwordless sudo, if needed:
 # users_groups: [adm, dialout, docker, sudo]
@@ -127,6 +127,7 @@ users:
 ```
 
 Include required role in `requirements.yaml`:
+
 ```yaml
 # requirements.yaml
 roles:
