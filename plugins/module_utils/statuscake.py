@@ -4,8 +4,26 @@ import yaml
 import sys
 import argparse
 from dataclasses import dataclass
+import http.client
 
 logger = logging.getLogger("statuscake")
+httpclient_logger = logging.getLogger("http.client")
+
+def httpclient_logging_patch(level=logging.DEBUG):
+    """
+    Enable HTTPConnection debug logging to the logging framework, so that
+    request.post() body and headers can be emitted to out log file.
+    Adapted from: https://stackoverflow.com/a/16337639/277364
+    """
+
+    def httpclient_log(*args):
+        httpclient_logger.log(level, " ".join(args))
+
+    # mask the print() built-in in the http.client module to use
+    # logging instead
+    http.client.print = httpclient_log
+    # enable debugging
+    http.client.HTTPConnection.debuglevel = 1
 
 
 def flatten(obj):
@@ -43,6 +61,7 @@ class StatusCakeAPI:
                 format="%(asctime)s %(name)-22s %(levelname)-8s %(message)s",
                 level=logging.DEBUG,
             )
+            httpclient_logging_patch()
 
     def full_url(self, path):
         return f"https://api.statuscake.com{path}"
