@@ -218,7 +218,9 @@ class UptimeTest(StatusCakeAPI):
 class SSLTest(StatusCakeAPI):
 
     url = "/v1/ssl"
-    CSV_PARAMETERS = ("alert_at", "contact_groups")
+    # API parameters to modify when sending lists to StatusCake
+    # For exaple, alert_at=[1, 2] becomes alert_at[]=1&alert_at[]=2
+    LIST_PARAMETERS = ("alert_at", "contact_groups")
 
     def fetch_all(self):
         """
@@ -242,13 +244,9 @@ class SSLTest(StatusCakeAPI):
 
     def prepare_data(self, data):
         data = super().prepare_data(data)
-        for key in self.CSV_PARAMETERS:
+        for key in self.LIST_PARAMETERS:
             if key in data:
-                key_csv = f"{key}_csv"
-                item = [str(_val) for _val in data[key]]
-                item_csv = ",".join(item)
-                data[key_csv] = item_csv
-                data.pop(key)
+                data[f"{key}[]"] = data.pop(key)
         if not data["website_url"].endswith("/"):
             data["website_url"] = data["website_url"] + "/"
         return data
