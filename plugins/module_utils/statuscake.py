@@ -62,6 +62,13 @@ class StatusCakeAPI:
             pass
         response = requests_method(self.full_url(path), **kwargs)
         self.response = response
+        if self.response.status_code < 200 or self.response.status_code >= 300:
+            data = self.response.json()
+            msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"
+            logger.error(msg)
+            self.status.message = msg
+            # mark as failed so error is sent to Ansible output
+            self.status.success = False
         return response
 
 
