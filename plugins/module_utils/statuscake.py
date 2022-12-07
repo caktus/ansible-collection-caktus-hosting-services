@@ -48,6 +48,14 @@ class Status:
 
 
 class StatusCakeAPI:
+
+    # API parameters to modify when sending "*_csv" lists to StatusCake
+    # For exaple, status_codes=[200, 201] becomes status_codes_csv=200,201
+    CSV_PARAMETERS = set()
+    # API parameters to modify when sending lists to StatusCake
+    # For exaple, tags=["prod", "myteam"] becomes tags[]=prod&tags[]=myteam
+    LIST_PARAMETERS = set()
+
     def __init__(self, api_key, state, log_file=None, **kwargs) -> None:
         self.api_key = api_key
         self.state = state
@@ -72,10 +80,22 @@ class StatusCakeAPI:
         for key, val in data.items():
             if val:
                 cleaned_data[key] = val
+        for key in self.CSV_PARAMETERS:
+            if key in cleaned_data:
+                key_csv = f"{key}_csv"
+                item = [str(_val) for _val in cleaned_data[key]]
+                item_csv = ",".join(item)
+                cleaned_data[key_csv] = item_csv
+                cleaned_data.pop(key)
+        for key in self.LIST_PARAMETERS:
+            if key in cleaned_data:
+                cleaned_data[f"{key}[]"] = cleaned_data.pop(key)
         return cleaned_data
 
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
+        logger.debug(f"CSV_PARAMETERS: {self.CSV_PARAMETERS}")
+        logger.debug(f"LIST_PARAMETERS: {self.LIST_PARAMETERS}")
         try:
             logger.debug(f"Request data: {kwargs['data']}")
         except KeyError:
@@ -95,7 +115,12 @@ class StatusCakeAPI:
 class UptimeTest(StatusCakeAPI):
 
     url = "/v1/uptime"
-    CSV_PARAMETERS = ("tags", "contact_groups", "dns_ip", "status_codes")
+    CSV_PARAMETERS = (
+        "tags",
+        "contact_groups",
+        "dns_ip",
+    )
+    LIST_PARAMETERS = ("status_codes",)
 
     def fetch_all(self):
         self._request("get", self.url, params={"page": 1, "limit": 100})
@@ -110,17 +135,6 @@ class UptimeTest(StatusCakeAPI):
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
                 return test
-
-    def prepare_data(self, data):
-        data = super().prepare_data(data)
-        for key in self.CSV_PARAMETERS:
-            if key in data:
-                key_csv = f"{key}_csv"
-                item = [str(_val) for _val in data[key]]
-                item_csv = ",".join(item)
-                data[key_csv] = item_csv
-                data.pop(key)
-        return data
 
     def retrieve(self):
         """
@@ -219,8 +233,6 @@ class UptimeTest(StatusCakeAPI):
 class SSLTest(StatusCakeAPI):
 
     url = "/v1/ssl"
-    # API parameters to modify when sending lists to StatusCake
-    # For exaple, alert_at=[1, 2] becomes alert_at[]=1&alert_at[]=2
     LIST_PARAMETERS = ("alert_at", "contact_groups")
 
     def fetch_all(self):
