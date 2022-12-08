@@ -1,6 +1,14 @@
 from plugins.module_utils import statuscake
 
 
+class TestStatusCakeAPI:
+    def test_failed_status_code_api_call(self, requests_mock):
+        requests_mock.get("/v1/uptime", status_code=400, json={"message": "Bad Error"})
+        client = statuscake.StatusCakeAPI(api_key="", state="")
+        client._request("get", "/v1/uptime")
+        assert "Bad Error" in client.status.message
+
+
 class TestUptimeTest:
     def test_contact_groups(self):
         client = statuscake.UptimeTest(

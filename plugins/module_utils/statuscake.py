@@ -95,8 +95,6 @@ class StatusCakeAPI:
 
     def _request(self, method, path, **kwargs):
         requests_method = getattr(self.client, method)
-        logger.debug(f"CSV_PARAMETERS: {self.CSV_PARAMETERS}")
-        logger.debug(f"LIST_PARAMETERS: {self.LIST_PARAMETERS}")
         try:
             logger.debug(f"Request data: {kwargs['data']}")
         except KeyError:
