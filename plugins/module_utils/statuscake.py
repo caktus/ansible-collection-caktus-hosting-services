@@ -103,7 +103,7 @@ class StatusCakeAPI:
         self.response = response
         if self.response.status_code < 200 or self.response.status_code >= 300:
             data = self.response.json()
-            msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"
+            msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"  # noqa
             logger.error(msg)
             self.status.message = msg
             # mark as failed so error is sent to Ansible output
@@ -181,7 +181,7 @@ class UptimeTest(StatusCakeAPI):
                 ] or fetch_tests["test_type"] != self.config.get("test_type", "HTTP"):
                     self.status.success = False
                     self.status.changed = False
-                    msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."
+                    msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."  # noqa
                     logger.info(msg)
                     self.status.message = msg
                     return
