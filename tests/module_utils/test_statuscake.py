@@ -2,6 +2,12 @@ from plugins.module_utils import statuscake
 
 
 class TestStatusCakeAPI:
+    def test_too_many_requests_api_call(self, requests_mock):
+        requests_mock.get("/v1/uptime", status_code=429, reason="Too Many Requests")
+        client = statuscake.StatusCakeAPI(api_key="", state="")
+        client._request("get", "/v1/uptime")
+        assert "Too Many Requests" in client.status.message
+
     def test_failed_status_code_api_call(self, requests_mock):
         requests_mock.get("/v1/uptime", status_code=400, json={"message": "Bad Error"})
         client = statuscake.StatusCakeAPI(api_key="", state="")

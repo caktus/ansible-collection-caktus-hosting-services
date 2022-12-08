@@ -102,7 +102,11 @@ class StatusCakeAPI:
         response = requests_method(self.full_url(path), **kwargs)
         self.response = response
         if self.response.status_code < 200 or self.response.status_code >= 300:
-            data = self.response.json()
+            data = {"message": response.reason, "errors": ""}
+            try:
+                data = self.response.json()
+            except requests.JSONDecodeError:
+                data["errors"] = response.headers
             msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"  # noqa
             logger.error(msg)
             self.status.message = msg
