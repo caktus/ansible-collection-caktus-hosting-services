@@ -54,6 +54,7 @@ class StatusCakeAPI:
     CSV_PARAMETERS = set()
     # API parameters to modify when sending lists to StatusCake
     # For exaple, tags=["prod", "myteam"] becomes tags[]=prod&tags[]=myteam
+    # See: https://developers.statuscake.com/guides/api/parameters/
     LIST_PARAMETERS = set()
 
     def __init__(self, api_key, state, log_file=None, **kwargs) -> None:
@@ -115,12 +116,12 @@ class StatusCakeAPI:
 class UptimeTest(StatusCakeAPI):
 
     url = "/v1/uptime"
-    CSV_PARAMETERS = (
-        "tags",
+    CSV_PARAMETERS = ("status_codes",)
+    LIST_PARAMETERS = (
         "contact_groups",
         "dns_ip",
+        "tags",
     )
-    LIST_PARAMETERS = ("status_codes",)
 
     def fetch_all(self):
         self._request("get", self.url, params={"page": 1, "limit": 100})
