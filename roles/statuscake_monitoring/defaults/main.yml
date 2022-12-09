@@ -41,7 +41,7 @@ statuscake_ssl_follow_redirects: False
 statuscake_ssl_check_rate: 86400
 statuscake_ssl_contact_groups: "{{ statuscake_contact_groups }}"
 statuscake_ssl_hostname: null
-statuscake_ssl_log_file: ""
+statuscake_ssl_log_file: "{{ statuscake_log_file }}"
 statuscake_ssl_paused: "{{ statuscake_paused }}"
 statuscake_ssl_state: "{{ statuscake_state }}"
 statuscake_ssl_user_agent: ""
