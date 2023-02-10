@@ -1,0 +1,14 @@
+# At minimum, you must provided credentials for SES (or another email provider):
+# email_forwarding_smtp_host: ""
+# email_forwarding_smtp_user: ""
+# email_forwarding_smtp_password: ""
+
+# Optionally set a destation for all root mail:
+# email_forwarding_root_destination: user@example.com
+
+# Optionally override the sender for all outgoing mail (not suitable if your
+# app already sets an acceptable and more desirable From address):
+# email_forwarding_rewrite_sender: "{{ inventory_hostname | replace('_', '-') }}@example.com"
+
+# Default sender to match against for sender rewrites (defaults to all mail):
+email_forwarding_rewrite_sender_regexp: "/.+/"

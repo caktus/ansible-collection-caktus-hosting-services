@@ -1,0 +1,5 @@
+# Smartd scan schedule. The default is to start a short self-test
+# every day between 3-4am, and a long self test Saturdays between 4-5am.
+smartd_scan_schedule: "(S/../.././03|L/../../6/04)"
+# Define an admin email in your local variables to receive notices from smartd:
+# smartd_admin_email: user@example.com

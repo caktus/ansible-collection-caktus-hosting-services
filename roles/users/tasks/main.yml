@@ -1,0 +1,18 @@
+# Provide some defaults for user groups and shell. Note that the default
+# users_groups assumes all users should have sudo permission!
+- name: Set default users_groups and users_shell
+  set_fact:
+    users_groups: [adm, dialout, docker, sudo]
+    users_shell: /bin/bash
+
+- name: Enable or disable passwordless sudo
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: "^%sudo"
+    line: "{{ users_enable_passwordless_sudo | ternary('%sudo ALL=(ALL) NOPASSWD: ALL', '%sudo ALL=(ALL:ALL) ALL') }}"
+    validate: "visudo -cf %s"
+
+- name: Include weareinteractive.users role
+  include_role:
+    name: weareinteractive.users
