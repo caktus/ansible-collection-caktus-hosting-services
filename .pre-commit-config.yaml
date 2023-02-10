@@ -16,3 +16,9 @@ repos:
     rev: "v2.6.0"
     hooks:
       - id: prettier
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
+    hooks:
+      - id: flake8
+        exclude: settings|migrations|tests

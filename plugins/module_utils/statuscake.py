@@ -4,8 +4,27 @@ import yaml
 import sys
 import argparse
 from dataclasses import dataclass
+import http.client
 
 logger = logging.getLogger("statuscake")
+httpclient_logger = logging.getLogger("http.client")
+
+
+def httpclient_logging_patch(level=logging.DEBUG):
+    """
+    Enable HTTPConnection debug logging to the logging framework, so that
+    request.post() body and headers can be emitted to out log file.
+    Adapted from: https://stackoverflow.com/a/16337639/277364
+    """
+
+    def httpclient_log(*args):
+        httpclient_logger.log(level, " ".join(args))
+
+    # mask the print() built-in in the http.client module to use
+    # logging instead
+    http.client.print = httpclient_log
+    # enable debugging
+    http.client.HTTPConnection.debuglevel = 1
 
 
 def flatten(obj):
@@ -29,6 +48,15 @@ class Status:
 
 
 class StatusCakeAPI:
+
+    # API parameters to modify when sending "*_csv" lists to StatusCake
+    # For exaple, status_codes=[200, 201] becomes status_codes_csv=200,201
+    CSV_PARAMETERS = set()
+    # API parameters to modify when sending lists to StatusCake
+    # For exaple, tags=["prod", "myteam"] becomes tags[]=prod&tags[]=myteam
+    # See: https://developers.statuscake.com/guides/api/parameters/
+    LIST_PARAMETERS = set()
+
     def __init__(self, api_key, state, log_file=None, **kwargs) -> None:
         self.api_key = api_key
         self.state = state
@@ -43,6 +71,7 @@ class StatusCakeAPI:
                 format="%(asctime)s %(name)-22s %(levelname)-8s %(message)s",
                 level=logging.DEBUG,
             )
+            httpclient_logging_patch()
 
     def full_url(self, path):
         return f"https://api.statuscake.com{path}"
@@ -52,6 +81,16 @@ class StatusCakeAPI:
         for key, val in data.items():
             if val:
                 cleaned_data[key] = val
+        for key in self.CSV_PARAMETERS:
+            if key in cleaned_data:
+                key_csv = f"{key}_csv"
+                item = [str(_val) for _val in cleaned_data[key]]
+                item_csv = ",".join(item)
+                cleaned_data[key_csv] = item_csv
+                cleaned_data.pop(key)
+        for key in self.LIST_PARAMETERS:
+            if key in cleaned_data:
+                cleaned_data[f"{key}[]"] = cleaned_data.pop(key)
         return cleaned_data
 
     def _request(self, method, path, **kwargs):
@@ -62,13 +101,29 @@ class StatusCakeAPI:
             pass
         response = requests_method(self.full_url(path), **kwargs)
         self.response = response
+        if self.response.status_code < 200 or self.response.status_code >= 300:
+            data = {"message": response.reason, "errors": ""}
+            try:
+                data = self.response.json()
+            except requests.JSONDecodeError:
+                data["errors"] = response.headers
+            msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"  # noqa
+            logger.error(msg)
+            self.status.message = msg
+            # mark as failed so error is sent to Ansible output
+            self.status.success = False
         return response
 
 
 class UptimeTest(StatusCakeAPI):
 
     url = "/v1/uptime"
-    CSV_PARAMETERS = ("tags", "contact_groups", "dns_ip", "status_codes")
+    CSV_PARAMETERS = ("status_codes",)
+    LIST_PARAMETERS = (
+        "contact_groups",
+        "dns_ip",
+        "tags",
+    )
 
     def fetch_all(self):
         self._request("get", self.url, params={"page": 1, "limit": 100})
@@ -83,17 +138,6 @@ class UptimeTest(StatusCakeAPI):
                 logger.debug(f"Fetched data: {test}")
                 self.id = test["id"]
                 return test
-
-    def prepare_data(self, data):
-        data = super().prepare_data(data)
-        for key in self.CSV_PARAMETERS:
-            if key in data:
-                key_csv = f"{key}_csv"
-                item = [str(_val) for _val in data[key]]
-                item_csv = ",".join(item)
-                data[key_csv] = item_csv
-                data.pop(key)
-        return data
 
     def retrieve(self):
         """
@@ -141,7 +185,7 @@ class UptimeTest(StatusCakeAPI):
                 ] or fetch_tests["test_type"] != self.config.get("test_type", "HTTP"):
                     self.status.success = False
                     self.status.changed = False
-                    msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."
+                    msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."  # noqa
                     logger.info(msg)
                     self.status.message = msg
                     return
@@ -192,7 +236,7 @@ class UptimeTest(StatusCakeAPI):
 class SSLTest(StatusCakeAPI):
 
     url = "/v1/ssl"
-    CSV_PARAMETERS = ("alert_at", "contact_groups")
+    LIST_PARAMETERS = ("alert_at", "contact_groups")
 
     def fetch_all(self):
         """
@@ -216,13 +260,9 @@ class SSLTest(StatusCakeAPI):
 
     def prepare_data(self, data):
         data = super().prepare_data(data)
-        for key in self.CSV_PARAMETERS:
+        for key in self.LIST_PARAMETERS:
             if key in data:
-                key_csv = f"{key}_csv"
-                item = [str(_val) for _val in data[key]]
-                item_csv = ",".join(item)
-                data[key_csv] = item_csv
-                data.pop(key)
+                data[f"{key}[]"] = data.pop(key)
         if not data["website_url"].endswith("/"):
             data["website_url"] = data["website_url"] + "/"
         return data
