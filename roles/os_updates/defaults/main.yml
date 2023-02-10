@@ -1,0 +1,6 @@
+---
+aws_profile: ""
+
+os_updates_reboot: false
+os_updates_salt_hold: false
+os_updates_ec2_instances: false

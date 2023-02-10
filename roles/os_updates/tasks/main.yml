@@ -1,0 +1,54 @@
+---
+- name: Hold salt packages
+  shell: "echo {{ item }} hold | sudo dpkg --set-selections"
+  loop:
+    - salt-common
+    - salt-master
+    - salt-minion
+  tags: os_updates
+  when: os_updates_salt_hold
+
+- name: Remove useless packages from the cache
+  apt:
+    autoclean: yes
+  tags: os_updates
+
+# clean out old kernels to make room in /boot before an upgrade
+- name: Remove dependencies that are no longer required
+  apt:
+    autoremove: yes
+  tags: os_updates
+
+- name: Run updates
+  apt:
+    upgrade: dist
+    cache_valid_time: 3600
+  tags: os_updates
+
+- name: Check if a reboot is required
+  register: needs_reboot
+  stat:
+    path: /var/run/
+    get_md5: no
+  changed_when: needs_reboot.stat.exists
+  when: os_updates_reboot
+
+- debug:
+    msg: "{{ ansible_host }} : scheduled for reboot"
+  when: os_updates_reboot and needs_reboot.stat.exists
+
+- name: Rebooting
+  reboot:
+    msg: "rebooting {{ ansible_host }}"
+  when: os_updates_reboot and needs_reboot.stat.exists and not os_updates_ec2_instances
+
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-reboot.html
+- name: Rebooting via Amazon EC2 API
+  community.aws.ec2_instance:
+    state: restarted
+    instance_ids:
+      - "{{ hostvars[inventory_hostname].instance_id }}"
+    profile: "{{ aws_profile }}"
+  become: no
+  delegate_to: 127.0.0.1
+  when: os_updates_reboot and needs_reboot.stat.exists and os_updates_ec2_instances
