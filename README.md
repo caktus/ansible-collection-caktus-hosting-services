@@ -45,6 +45,28 @@ roles:
     src: https://github.com/Oefenweb/ansible-postfix
 ```
 
+## `hosting_services.os_updates`
+
+Runs operating system updates and reboots the server, if needed.
+
+```yaml
+# playbook.yaml
+- hosts: all
+  become: yes
+  tags: os_updates
+  roles:
+    - caktus.hosting_services.os_updates
+```
+
+```yaml
+# vars file
+aws_profile: ""
+
+os_updates_reboot: true
+os_updates_salt_hold: false
+os_updates_ec2_instances: false
+```
+
 ## `hosting_services.rsyslog_forwarding`
 
 Forwards logs to an external syslog server via rsyslog.
