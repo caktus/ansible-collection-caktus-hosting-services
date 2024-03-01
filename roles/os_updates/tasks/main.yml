@@ -29,7 +29,6 @@
   register: needs_reboot
   stat:
     path: /var/run/
-    get_md5: no
   changed_when: needs_reboot.stat.exists
   when: os_updates_reboot
 
