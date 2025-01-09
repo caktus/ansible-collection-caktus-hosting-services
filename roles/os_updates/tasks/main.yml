@@ -39,6 +39,7 @@
 - name: Rebooting
   reboot:
     msg: "rebooting {{ ansible_host }}"
+    reboot_timeout: "{{ os_updates_reboot_timeout | default(omit) }}"
   when: os_updates_reboot and needs_reboot.stat.exists and not os_updates_ec2_instances
 
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-reboot.html
