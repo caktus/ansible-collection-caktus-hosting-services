@@ -11,18 +11,24 @@
 - name: Remove useless packages from the cache
   apt:
     autoclean: yes
+  retries: "{{ os_updates_apt_retries}}"
+  delay: "{{ os_updates_apt_delay }}"
   tags: os_updates
 
 # clean out old kernels to make room in /boot before an upgrade
 - name: Remove dependencies that are no longer required
   apt:
     autoremove: yes
+  retries: "{{ os_updates_apt_retries}}"
+  delay: "{{ os_updates_apt_delay }}"
   tags: os_updates
 
 - name: Run updates
   apt:
     upgrade: dist
-    cache_valid_time: 3600
+    cache_valid_time: "{{ os_updates_apt_cache_valid_time }}"
+  retries: "{{ os_updates_apt_retries}}"
+  delay: "{{ os_updates_apt_delay }}"
   tags: os_updates
 
 - name: Check if a reboot is required
