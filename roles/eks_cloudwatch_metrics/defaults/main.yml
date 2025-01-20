@@ -1,0 +1,6 @@
+---
+k8s_aws_cloudwatch_metrics_cluster_name: ""
+
+k8s_aws_cloudwatch_metrics_alarms: ""
+k8s_aws_alarm_actions_arn: ""
+k8s_aws_cloudwatch_alarm_region: "us-east-1"
