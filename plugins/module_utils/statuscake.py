@@ -122,6 +122,7 @@ class UptimeTest(StatusCakeAPI):
     LIST_PARAMETERS = (
         "contact_groups",
         "dns_ip",
+        "regions",
         "tags",
     )
 
