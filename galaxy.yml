@@ -61,3 +61,5 @@ build_ignore:
   - .direnv
   - .envrc
   - config.yml
+  - .venv
+  - .ansible
