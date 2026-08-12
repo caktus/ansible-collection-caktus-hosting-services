@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.8.0 - 2026-08-12
+
+- Add `regions` to `UptimeTest` LIST_PARAMETERS
+- Migrate project tooling to uv
+- Switch pre-commit hooks to ruff and uv-lock
+
 ## v0.7.2 - 2025-01-31
 
 - Fix `needs_reboot` path check (#48)
