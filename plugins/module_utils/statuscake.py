@@ -1,10 +1,12 @@
+import argparse
+import http.client
 import logging
+import sys
+from dataclasses import dataclass
+from typing import ClassVar
+
 import requests
 import yaml
-import sys
-import argparse
-from dataclasses import dataclass
-import http.client
 
 logger = logging.getLogger("statuscake")
 httpclient_logger = logging.getLogger("http.client")
@@ -48,14 +50,13 @@ class Status:
 
 
 class StatusCakeAPI:
-
     # API parameters to modify when sending "*_csv" lists to StatusCake
     # For exaple, status_codes=[200, 201] becomes status_codes_csv=200,201
-    CSV_PARAMETERS = set()
+    CSV_PARAMETERS: ClassVar[tuple[str, ...]] = ()
     # API parameters to modify when sending lists to StatusCake
     # For exaple, tags=["prod", "myteam"] becomes tags[]=prod&tags[]=myteam
     # See: https://developers.statuscake.com/guides/api/parameters/
-    LIST_PARAMETERS = set()
+    LIST_PARAMETERS: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, api_key, state, log_file=None, **kwargs) -> None:
         self.api_key = api_key
@@ -107,7 +108,7 @@ class StatusCakeAPI:
                 data = self.response.json()
             except requests.JSONDecodeError:
                 data["errors"] = response.headers
-            msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"  # noqa
+            msg = f"StatusCake error: {data.get('message')} - {data.get('errors')} --- Request data: {kwargs.get('data')}"
             logger.error(msg)
             self.status.message = msg
             # mark as failed so error is sent to Ansible output
@@ -116,12 +117,12 @@ class StatusCakeAPI:
 
 
 class UptimeTest(StatusCakeAPI):
-
     url = "/v1/uptime"
     CSV_PARAMETERS = ("status_codes",)
     LIST_PARAMETERS = (
         "contact_groups",
         "dns_ip",
+        "regions",
         "tags",
     )
 
@@ -179,16 +180,16 @@ class UptimeTest(StatusCakeAPI):
             # Website_url and test_type are immutable in Statuscake API
             # Notifies user if they attempt to change them
             fetch_tests = self.retrieve()
-            if fetch_tests:
-                if fetch_tests["website_url"] != self.config[
-                    "website_url"
-                ] or fetch_tests["test_type"] != self.config.get("test_type", "HTTP"):
-                    self.status.success = False
-                    self.status.changed = False
-                    msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."  # noqa
-                    logger.info(msg)
-                    self.status.message = msg
-                    return
+            if fetch_tests and (
+                fetch_tests["website_url"] != self.config["website_url"]
+                or fetch_tests["test_type"] != self.config.get("test_type", "HTTP")
+            ):
+                self.status.success = False
+                self.status.changed = False
+                msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfully change them, delete the current test and create a new uptime test with the new parameters."
+                logger.info(msg)
+                self.status.message = msg
+                return
 
             self._request("put", f"{self.url}/{self.id}", data=self.config)
             if self.response.status_code == 204:
@@ -234,7 +235,6 @@ class UptimeTest(StatusCakeAPI):
 
 
 class SSLTest(StatusCakeAPI):
-
     url = "/v1/ssl"
     LIST_PARAMETERS = ("alert_at", "contact_groups")
 
@@ -379,7 +379,8 @@ if __name__ == "__main__":
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
-    data_loaded = yaml.safe_load(open(parser_file, "r"))
+    with open(parser_file) as f:
+        data_loaded = yaml.safe_load(f)
 
     for ssl_test in data_loaded["ssl_tests"]:
         if ssl_test["website_url"]:

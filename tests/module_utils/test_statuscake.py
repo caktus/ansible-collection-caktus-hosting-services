@@ -30,6 +30,10 @@ class TestUptimeTest:
         client = statuscake.UptimeTest(api_key="", state="", tags=["prod"])
         assert client.config == {"tags[]": ["prod"]}
 
+    def test_regions(self):
+        client = statuscake.UptimeTest(api_key="", state="", regions=["us", "eu"])
+        assert client.config == {"regions[]": ["us", "eu"]}
+
 
 class TestSSLTest:
     def test_alert_at(self):
