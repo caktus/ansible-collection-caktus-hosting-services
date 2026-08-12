@@ -52,11 +52,11 @@ class Status:
 class StatusCakeAPI:
     # API parameters to modify when sending "*_csv" lists to StatusCake
     # For exaple, status_codes=[200, 201] becomes status_codes_csv=200,201
-    CSV_PARAMETERS: ClassVar[set] = set()
+    CSV_PARAMETERS: ClassVar[tuple[str, ...]] = ()
     # API parameters to modify when sending lists to StatusCake
     # For exaple, tags=["prod", "myteam"] becomes tags[]=prod&tags[]=myteam
     # See: https://developers.statuscake.com/guides/api/parameters/
-    LIST_PARAMETERS: ClassVar[set] = set()
+    LIST_PARAMETERS: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, api_key, state, log_file=None, **kwargs) -> None:
         self.api_key = api_key
@@ -186,7 +186,7 @@ class UptimeTest(StatusCakeAPI):
             ):
                 self.status.success = False
                 self.status.changed = False
-                msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfuly change them, delete the current test and create a new uptime test with the new parameters."
+                msg = f"You attempted to change {fetch_tests['name']}'s 'website_url' or 'test_type' - they are immutable. To successfully change them, delete the current test and create a new uptime test with the new parameters."
                 logger.info(msg)
                 self.status.message = msg
                 return
