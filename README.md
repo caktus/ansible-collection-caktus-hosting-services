@@ -156,3 +156,19 @@ Include required role in `requirements.yaml`:
 roles:
   - src: weareinteractive.users
 ```
+
+### Releasing
+
+1. Bump the version in `pyproject.toml`:
+   ```sh
+   uv version --bump patch  # or --bump minor/major
+   ```
+
+2. Update the `version` field in `galaxy.yml` to match
+
+3. Add release notes to `CHANGELOG.md`
+
+4. Create a new release on GitHub:
+   - Tag the version (e.g., `v0.2.1`)
+   - Add the same release notes
+   - Publish the release

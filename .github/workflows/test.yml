@@ -19,3 +19,5 @@ jobs:
         run: uv sync --locked
       - name: Run tests
         run: uv run pytest
+      - name: Build Ansible collection
+        run: uv run ansible-galaxy collection build
