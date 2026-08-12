@@ -1,4 +1,4 @@
-name: test
+name: pre-commit
 
 on:
   pull_request:
@@ -6,15 +6,16 @@ on:
     branches: [main]
 
 jobs:
-  tests:
+  pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v6
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.9"
-          cache: "pip"
+          python-version: "3.14"
+          enable-cache: true
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: uv sync --locked
       - name: Run tests
-        run: pytest
+        run: uv run pytest
