@@ -20,10 +20,7 @@ def wait_for_update(
     sleep: Callable[[float], None] = time.sleep,
     **resource: str,
 ) -> dict[str, Any]:
-    """Poll describe_update until it succeeds.
-
-    ``resource`` is ``addonName=...`` or ``nodegroupName=...``, as describe_update requires.
-    """
+    """Poll describe_update until done; ``resource`` is addonName= or nodegroupName=."""
     deadline = time.monotonic() + timeout
     while True:
         update = client.describe_update(

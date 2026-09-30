@@ -81,6 +81,7 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.eks_aws im
 
 
 def list_addons(client: Any, cluster_name: str) -> list[str]:
+    """Return the names of all addons installed on the cluster."""
     names = []
     for page in client.get_paginator("list_addons").paginate(clusterName=cluster_name):
         names.extend(page["addons"])
@@ -90,6 +91,7 @@ def list_addons(client: Any, cluster_name: str) -> list[str]:
 def compatible_versions(
     client: Any, addon_name: str, k8s_version: str
 ) -> list[dict[str, Any]]:
+    """Return addon versions compatible with the given Kubernetes version."""
     versions = []
     paginator = client.get_paginator("describe_addon_versions")
     for page in paginator.paginate(addonName=addon_name, kubernetesVersion=k8s_version):
@@ -99,6 +101,7 @@ def compatible_versions(
 
 
 def run(module: AnsibleAWSModule, client: Any, results: list[dict[str, Any]]) -> None:
+    """Resolve and apply addon updates, appending one entry per addon to ``results``."""
     params = module.params
     cluster_name = params["cluster_name"]
     k8s_version = client.describe_cluster(name=cluster_name, aws_retry=True)["cluster"][

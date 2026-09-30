@@ -31,6 +31,12 @@ class Version:
 
     @classmethod
     def parse(cls, raw: str | None, is_default: bool = False) -> Version | None:
+        """Parse an addon or AMI release version, or return None if unrecognized.
+
+        v1.19.2-eksbuild.3 > v1.19.2-eksbuild.1
+        1.35.0-20260915 > 1.35.0-20260801
+        "latest" -> None
+        """
         m = _VERSION_RE.match(raw or "")
         if not m:
             return None
@@ -40,6 +46,11 @@ class Version:
         )
 
     def within_minor_step(self, other: Version) -> bool:
+        """True if this version is at most one minor version ahead of ``other``.
+
+        v1.20.3 vs v1.19.0 -> True
+        v1.21.0 vs v1.19.0 -> False
+        """
         return (self.major, self.minor) <= (other.major, other.minor + 1)
 
 
@@ -56,6 +67,7 @@ class VersionCandidates(dict[str, Version]):
     def from_strings(
         cls, raws: Iterable[str], defaults: Collection[str] = frozenset()
     ) -> VersionCandidates:
+        """Build from raw strings, marking any in ``defaults`` as the default."""
         parsed, rejected = [], []
         for raw in raws:
             version = Version.parse(raw, is_default=raw in defaults)
@@ -69,6 +81,7 @@ class VersionCandidates(dict[str, Version]):
     def from_addon_versions(
         cls, addon_versions: list[dict[str, Any]]
     ) -> VersionCandidates:
+        """Build from a describe_addon_versions ``addonVersions`` list."""
         defaults = {
             v["addonVersion"]
             for v in addon_versions
@@ -77,13 +90,21 @@ class VersionCandidates(dict[str, Version]):
         return cls.from_strings((v["addonVersion"] for v in addon_versions), defaults)
 
     def latest(self) -> Version | None:
+        """Return the highest version, if any.
+
+        [v1.19.2-eksbuild.1, v1.19.2-eksbuild.3] -> v1.19.2-eksbuild.3
+        """
         return max(self.values(), default=None)
 
     def default(self) -> Version | None:
+        """Return the version EKS flags as default for the cluster, if any."""
         return next((v for v in self.values() if v.is_default), None)
 
     def within_minor_step(self, current: Version) -> VersionCandidates:
-        """AWS recommends vpc-cni move one minor version at a time."""
+        """Keep versions at most one minor ahead of ``current`` (AWS vpc-cni guidance).
+
+        current v1.19.0: [v1.19.2, v1.20.0, v1.21.0] -> [v1.19.2, v1.20.0]
+        """
         return VersionCandidates(
             (v for v in self.values() if v.within_minor_step(current)), self.rejected
         )
@@ -99,7 +120,11 @@ class Resolution:
 def resolve_target(
     current: str, candidates: VersionCandidates, requested: str = "latest"
 ) -> Resolution:
-    """Pick the version to move to. Never returns a downgrade."""
+    """Pick the version to move to. Never returns a downgrade.
+
+    v1.19.2 -> [v1.19.2, v1.20.0]: v1.20.0, changed
+    v1.21.0 -> [v1.19.2, v1.20.0]: v1.21.0, unchanged (no downgrade)
+    """
     target = candidates.latest() if requested == "latest" else candidates.get(requested)
     if target is None:
         return Resolution(
@@ -119,6 +144,7 @@ def resolve_target(
 
 
 def ssm_release_version_path(ami_type: str, k8s_version: str) -> str | None:
+    """Return the SSM parameter holding the recommended AMI release, if the AMI type is known."""
     subpath = _SSM_AMI_PATHS.get(ami_type)
     if subpath is None:
         return None
@@ -128,6 +154,7 @@ def ssm_release_version_path(ami_type: str, k8s_version: str) -> str | None:
 def nodegroup_skip_reason(
     nodegroup: dict[str, Any], cluster_version: str
 ) -> str | None:
+    """Return why a nodegroup can't be updated, or None if it can."""
     if nodegroup.get("amiType") == "CUSTOM":
         return "custom AMI nodegroups are not supported"
     if nodegroup.get("status") != "ACTIVE":
@@ -141,6 +168,7 @@ def nodegroup_skip_reason(
 
 
 def planned(name: str, current: str, resolution: Resolution) -> dict[str, Any]:
+    """Build a result entry for a resolved update."""
     return {
         "name": name,
         "current_version": current,
@@ -153,6 +181,7 @@ def planned(name: str, current: str, resolution: Resolution) -> dict[str, Any]:
 
 
 def skipped(name: str, current: str | None, reason: str) -> dict[str, Any]:
+    """Build a result entry for a skipped resource."""
     return {
         "name": name,
         "current_version": current,
@@ -165,6 +194,7 @@ def skipped(name: str, current: str | None, reason: str) -> dict[str, Any]:
 
 
 def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build the module's exit_json kwargs (changed, updates, diff)."""
     return {
         "changed": any(r["changed"] for r in results),
         "updates": results,

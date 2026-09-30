@@ -82,6 +82,7 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.eks_aws im
 
 
 def list_nodegroups(client: Any, cluster_name: str) -> list[str]:
+    """Return the names of all managed nodegroups in the cluster."""
     names = []
     for page in client.get_paginator("list_nodegroups").paginate(
         clusterName=cluster_name
@@ -93,6 +94,7 @@ def list_nodegroups(client: Any, cluster_name: str) -> list[str]:
 def run(
     module: AnsibleAWSModule, client: Any, ssm: Any, results: list[dict[str, Any]]
 ) -> None:
+    """Resolve and apply AMI updates, appending one entry per nodegroup to ``results``."""
     params = module.params
     cluster_name = params["cluster_name"]
     cluster_version = client.describe_cluster(name=cluster_name, aws_retry=True)[
