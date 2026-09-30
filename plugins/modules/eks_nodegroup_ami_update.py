@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 DOCUMENTATION = r"""
 module: eks_nodegroup_ami_update
 short_description: Refresh EKS managed nodegroups to a newer AMI release
@@ -52,6 +54,8 @@ updates:
   elements: dict
 """
 
+from typing import Any
+
 try:
     from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
@@ -63,6 +67,7 @@ from ansible_collections.amazon.aws.plugins.module_utils.botocore import (
 from ansible_collections.amazon.aws.plugins.module_utils.modules import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.retries import AWSRetry
 from ansible_collections.caktus.hosting_services.plugins.module_utils.eks import (
+    VersionCandidates,
     nodegroup_skip_reason,
     planned,
     resolve_target,
@@ -76,7 +81,7 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.eks_aws im
 )
 
 
-def list_nodegroups(client, cluster_name):
+def list_nodegroups(client: Any, cluster_name: str) -> list[str]:
     names = []
     for page in client.get_paginator("list_nodegroups").paginate(
         clusterName=cluster_name
@@ -85,7 +90,9 @@ def list_nodegroups(client, cluster_name):
     return names
 
 
-def run(module, client, ssm, results):
+def run(
+    module: AnsibleAWSModule, client: Any, ssm: Any, results: list[dict[str, Any]]
+) -> None:
     params = module.params
     cluster_name = params["cluster_name"]
     cluster_version = client.describe_cluster(name=cluster_name, aws_retry=True)[
@@ -117,7 +124,10 @@ def run(module, client, ssm, results):
             except is_boto3_error_code("ParameterNotFound"):
                 raise UpdateFailed(f"no SSM release_version parameter at {path}")
 
-        resolution = resolve_target(current, [candidate], candidate)
+        candidates = VersionCandidates.from_strings([candidate])
+        if candidates.rejected:
+            module.warn(f"{name}: ignoring unparseable release version {candidate}")
+        resolution = resolve_target(current, candidates, candidate)
         entry = planned(name, current, resolution)
         results.append(entry)
         if not resolution.changed or module.check_mode:
@@ -145,7 +155,7 @@ def run(module, client, ssm, results):
             )
 
 
-def main():
+def main() -> None:
     module = AnsibleAWSModule(
         argument_spec={
             "cluster_name": {"required": True, "type": "str"},

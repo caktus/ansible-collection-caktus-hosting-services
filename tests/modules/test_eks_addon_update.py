@@ -17,7 +17,13 @@ def module(check_mode=False, **params):
         "wait": False,
         "wait_timeout": 600,
     }
-    return SimpleNamespace(params={**defaults, **params}, check_mode=check_mode)
+    warnings = []
+    return SimpleNamespace(
+        params={**defaults, **params},
+        check_mode=check_mode,
+        warnings=warnings,
+        warn=warnings.append,
+    )
 
 
 def addon(version="v1.19.0-eksbuild.1", status="ACTIVE", **extra):
@@ -160,6 +166,16 @@ def test_vpc_cni_limited_to_one_minor(stubber):
     results = []
     run(module(check_mode=True), client, results)
     assert results[0]["target_version"] == "v1.20.0-eksbuild.1"
+
+
+def test_warns_on_unparseable_versions(stubber):
+    client, stub = stubber
+    expect_lookup(stub, addon(), versions("v1.19.2-eksbuild.3", "weird"))
+    mod = module(check_mode=True)
+    results = []
+    run(mod, client, results)
+    assert results[0]["target_version"] == "v1.19.2-eksbuild.3"
+    assert mod.warnings == ["vpc-cni: ignoring unparseable versions weird"]
 
 
 def test_not_installed_is_skipped(stubber):

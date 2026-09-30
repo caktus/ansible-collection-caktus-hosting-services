@@ -1,6 +1,10 @@
 """Boto helpers shared by the EKS update modules."""
 
+from __future__ import annotations
+
 import time
+from collections.abc import Callable
+from typing import Any
 
 
 class UpdateFailed(Exception):
@@ -8,8 +12,14 @@ class UpdateFailed(Exception):
 
 
 def wait_for_update(
-    client, cluster_name, update_id, timeout, delay=15, sleep=time.sleep, **resource
-):
+    client: Any,
+    cluster_name: str,
+    update_id: str,
+    timeout: int,
+    delay: float = 15,
+    sleep: Callable[[float], None] = time.sleep,
+    **resource: str,
+) -> dict[str, Any]:
     """Poll describe_update until it succeeds.
 
     ``resource`` is ``addonName=...`` or ``nodegroupName=...``, as describe_update requires.

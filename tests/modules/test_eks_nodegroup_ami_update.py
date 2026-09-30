@@ -22,7 +22,9 @@ def module(check_mode=False, **params):
         "wait": False,
         "wait_timeout": 3600,
     }
-    return SimpleNamespace(params={**defaults, **params}, check_mode=check_mode)
+    return SimpleNamespace(
+        params={**defaults, **params}, check_mode=check_mode, warn=lambda msg: None
+    )
 
 
 def nodegroup(release="1.35.0-20260801", **extra):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 DOCUMENTATION = r"""
 module: eks_addon_update
 short_description: Update installed EKS addons to a newer compatible version
@@ -52,6 +54,8 @@ updates:
   elements: dict
 """
 
+from typing import Any
+
 try:
     from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
@@ -63,8 +67,8 @@ from ansible_collections.amazon.aws.plugins.module_utils.botocore import (
 from ansible_collections.amazon.aws.plugins.module_utils.modules import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.retries import AWSRetry
 from ansible_collections.caktus.hosting_services.plugins.module_utils.eks import (
-    default_version,
-    limit_minor_step,
+    Version,
+    VersionCandidates,
     planned,
     resolve_target,
     skipped,
@@ -76,14 +80,16 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.eks_aws im
 )
 
 
-def list_addons(client, cluster_name):
+def list_addons(client: Any, cluster_name: str) -> list[str]:
     names = []
     for page in client.get_paginator("list_addons").paginate(clusterName=cluster_name):
         names.extend(page["addons"])
     return names
 
 
-def compatible_versions(client, addon_name, k8s_version):
+def compatible_versions(
+    client: Any, addon_name: str, k8s_version: str
+) -> list[dict[str, Any]]:
     versions = []
     paginator = client.get_paginator("describe_addon_versions")
     for page in paginator.paginate(addonName=addon_name, kubernetesVersion=k8s_version):
@@ -92,7 +98,7 @@ def compatible_versions(client, addon_name, k8s_version):
     return versions
 
 
-def run(module, client, results):
+def run(module: AnsibleAWSModule, client: Any, results: list[dict[str, Any]]) -> None:
     params = module.params
     cluster_name = params["cluster_name"]
     k8s_version = client.describe_cluster(name=cluster_name, aws_retry=True)["cluster"][
@@ -114,14 +120,21 @@ def run(module, client, results):
             continue
 
         versions = compatible_versions(client, name, k8s_version)
-        compatible = [v["addonVersion"] for v in versions]
-        requested = params["version"]
-        if requested == "default":
-            requested = default_version(versions) or current
-        elif requested == "latest" and name == "vpc-cni":
-            compatible = limit_minor_step(current, compatible)
+        candidates = VersionCandidates.from_addon_versions(versions)
+        if candidates.rejected:
+            module.warn(
+                f"{name}: ignoring unparseable versions {', '.join(candidates.rejected)}"
+            )
 
-        resolution = resolve_target(current, compatible, requested)
+        requested = params["version"]
+        current_v = Version.parse(current)
+        if requested == "default":
+            default = candidates.default()
+            requested = default.raw if default else current
+        elif requested == "latest" and name == "vpc-cni" and current_v:
+            candidates = candidates.within_minor_step(current_v)
+
+        resolution = resolve_target(current, candidates, requested)
         entry = planned(name, current, resolution)
         results.append(entry)
         if not resolution.changed or module.check_mode:
@@ -147,7 +160,7 @@ def run(module, client, results):
             )
 
 
-def main():
+def main() -> None:
     module = AnsibleAWSModule(
         argument_spec={
             "cluster_name": {"required": True, "type": "str"},
