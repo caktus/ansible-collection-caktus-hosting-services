@@ -9,7 +9,6 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identi
     render_template,
 )
 
-
 _TOP_LEVEL_FIELDS = (
     "instance_arn",
     "identity_store_id",
@@ -27,9 +26,7 @@ _ACCESS_FIELDS = (
 )
 
 
-def _require_fields(
-    value: Mapping, fields: Sequence[str], context: str
-) -> None:
+def _require_fields(value: Mapping, fields: Sequence[str], context: str) -> None:
     """Reject input that cannot satisfy the collection contract."""
     missing = [field for field in fields if field not in value]
     if missing:
@@ -42,9 +39,7 @@ def _require_fields(
 def _template_input(value: Mapping) -> TemplateInput:
     """Convert Ansible data into typed template input."""
     if not isinstance(value, Mapping):
-        raise AnsibleFilterError(
-            "aws_identity_center_template expects a mapping"
-        )
+        raise AnsibleFilterError("aws_identity_center_template expects a mapping")
 
     _require_fields(value, _TOP_LEVEL_FIELDS, "template input")
     access_records = []

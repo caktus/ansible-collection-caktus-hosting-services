@@ -26,10 +26,7 @@ def template_data():
                 "state": "present",
                 "description": "Access ProjectAlpha",
                 "session_duration": "PT4H",
-                "role_arn": (
-                    "arn:aws:iam::777788889999:"
-                    "role/ProjectAccountAccessRole"
-                ),
+                "role_arn": ("arn:aws:iam::777788889999:role/ProjectAccountAccessRole"),
                 "users": ["userone"],
             }
         ],

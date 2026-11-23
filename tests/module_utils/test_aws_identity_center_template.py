@@ -1,9 +1,26 @@
 import json
+from dataclasses import asdict
+from hashlib import sha1
+from pathlib import Path
 
+import yaml
 from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identity_center_template import (
     AccessRecord,
     TemplateInput,
     render_template,
+)
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+class CloudFormationLoader(yaml.SafeLoader):
+    pass
+
+
+CloudFormationLoader.add_constructor(
+    "!GetAtt",
+    lambda loader, node: {"Fn::GetAtt": loader.construct_scalar(node).split(".", 1)},
 )
 
 
@@ -154,3 +171,40 @@ def test_renders_anchor_when_all_records_are_absent():
     assert resources == {
         "EmptyStackAnchor": {"Type": "AWS::CloudFormation::WaitConditionHandle"}
     }
+
+
+def test_matches_legacy_template_resources():
+    data = template_input()
+    access = []
+    for item in data.access:
+        record = asdict(item)
+        if record["managed_policies"]:
+            record.pop("role_arn")
+        else:
+            record.pop("managed_policies")
+        if record["target_account_id"] is None:
+            record.pop("target_account_id")
+        access.append(record)
+
+    environment = Environment(
+        loader=FileSystemLoader(FIXTURES),
+        undefined=StrictUndefined,
+        trim_blocks=True,
+    )
+    environment.filters["to_json"] = json.dumps
+    legacy = environment.get_template("legacy_identity_center.yml.j2").render(
+        aws_sso_access=access,
+        aws_sso_identity_store_id=data.identity_store_id,
+        aws_sso_instance_arn=data.instance_arn,
+        aws_sso_management_account_id=data.management_account_id,
+        aws_sso_user_ids=data.user_ids,
+        aws_sso_user_logical_ids={
+            username: f"User{sha1(username.encode()).hexdigest()}"
+            for username in data.user_ids
+        },
+    )
+
+    legacy_resources = yaml.load(legacy, Loader=CloudFormationLoader)["Resources"]
+    troposphere_resources = json.loads(render_template(data))["Resources"]
+
+    assert troposphere_resources == legacy_resources

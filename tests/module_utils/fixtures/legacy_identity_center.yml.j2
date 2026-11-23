@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: IAM Identity Center authorization
+
+Resources:
+{% if (aws_sso_access | selectattr('state', 'equalto', 'present') | list | length) == 0 %}
+  EmptyStackAnchor:
+    Type: AWS::CloudFormation::WaitConditionHandle
+{% endif %}
+{% for access in aws_sso_access | selectattr('state', 'equalto', 'present') %}
+  {{ access.logical_id }}Group:
+    Type: AWS::IdentityStore::Group
+    Properties:
+      IdentityStoreId: {{ aws_sso_identity_store_id | to_json }}
+      DisplayName: {{ access.name | to_json }}
+      Description: {{ access.description | to_json }}
+
+{% for username in access.users %}
+  {{ access.logical_id }}{{ aws_sso_user_logical_ids[username] }}Membership:
+    Type: AWS::IdentityStore::GroupMembership
+    Properties:
+      IdentityStoreId: {{ aws_sso_identity_store_id | to_json }}
+      GroupId: !GetAtt {{ access.logical_id }}Group.GroupId
+      MemberId:
+        UserId: {{ aws_sso_user_ids[username] | to_json }}
+
+{% endfor %}
+  {{ access.logical_id }}PermissionSet:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      InstanceArn: {{ aws_sso_instance_arn | to_json }}
+      Name: {{ access.name | to_json }}
+      Description: {{ access.description | to_json }}
+      SessionDuration: {{ access.session_duration | to_json }}
+{% if access.managed_policies is defined %}
+      ManagedPolicies:
+{% for policy_arn in access.managed_policies %}
+        - {{ policy_arn | to_json }}
+{% endfor %}
+{% else %}
+      InlinePolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: {{ access.role_arn | to_json }}
+{% endif %}
+
+  {{ access.logical_id }}Assignment:
+    Type: AWS::SSO::Assignment
+    Properties:
+      InstanceArn: {{ aws_sso_instance_arn | to_json }}
+      PermissionSetArn: !GetAtt {{ access.logical_id }}PermissionSet.PermissionSetArn
+      PrincipalId: !GetAtt {{ access.logical_id }}Group.GroupId
+      PrincipalType: GROUP
+      TargetId: {{ (access.target_account_id | default(aws_sso_management_account_id)) | to_json }}
+      TargetType: AWS_ACCOUNT
+{% endfor %}
