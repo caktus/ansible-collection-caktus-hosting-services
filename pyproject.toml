@@ -3,7 +3,11 @@ name = "ansible-collection-caktus-hosting-services"
 version = "0.8.0"
 description = "A collection of useful Ansible roles for managing virtual and physical servers"
 requires-python = ">=3.10"
-dependencies = ["pyyaml>=6.0.3", "requests>=2.34.2"]
+dependencies = [
+    "pyyaml>=6.0.3",
+    "requests>=2.34.2",
+    "troposphere>=4.11.1",
+]
 
 # Tell uv NOT to attempt building or installing the root directory as a wheel
 [tool.uv]
