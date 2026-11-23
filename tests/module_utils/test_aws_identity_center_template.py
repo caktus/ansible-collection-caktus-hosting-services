@@ -5,7 +5,8 @@ from pathlib import Path
 
 import yaml
 from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identity_center_template import (
-    AccessRecord,
+    AbsentAccessRecord,
+    PresentAccessRecord,
     TemplateInput,
     render_template,
 )
@@ -34,7 +35,7 @@ def template_input():
             "usertwo": "22222222-2222-2222-2222-222222222222",
         },
         access=(
-            AccessRecord(
+            PresentAccessRecord(
                 logical_id="ControlPlaneAdmin",
                 name="ControlPlane-Admin",
                 state="present",
@@ -44,7 +45,7 @@ def template_input():
                 session_duration="PT1H",
                 users=("userone", "usertwo"),
             ),
-            AccessRecord(
+            PresentAccessRecord(
                 logical_id="ProjectAlphaProdAdmin",
                 name="ProjectAlpha-Prod-Admin",
                 state="present",
@@ -53,7 +54,7 @@ def template_input():
                 session_duration="PT1H",
                 users=("userone", "usertwo"),
             ),
-            AccessRecord(
+            PresentAccessRecord(
                 logical_id="ProjectBetaDevAdmin",
                 name="ProjectBeta-Dev-Admin",
                 state="present",
@@ -62,14 +63,9 @@ def template_input():
                 session_duration="PT4H",
                 users=("userone", "usertwo"),
             ),
-            AccessRecord(
+            AbsentAccessRecord(
                 logical_id="OtherProjectAdmin",
-                name="Other-Project-Admin",
                 state="absent",
-                description="Access another project",
-                role_arn=("arn:aws:iam::777788889999:role/ProjectAccountAccessRole"),
-                session_duration="PT4H",
-                users=(),
             ),
         ),
     )
@@ -122,7 +118,7 @@ def test_renders_managed_and_inline_policies():
 def test_preserves_explicit_empty_managed_policy_list():
     data = template_input()
     record = data.access[1]
-    explicit_empty = AccessRecord(
+    explicit_empty = PresentAccessRecord(
         logical_id=record.logical_id,
         name=record.name,
         state=record.state,
@@ -207,6 +203,9 @@ def test_matches_legacy_template_resources():
     access = []
     for item in data.access:
         record = asdict(item)
+        if record["state"] == "absent":
+            access.append(record)
+            continue
         if record["managed_policies"]:
             record.pop("role_arn")
         else:

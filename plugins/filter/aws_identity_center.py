@@ -1,33 +1,26 @@
 """Expose IAM Identity Center template generation to Ansible."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from dataclasses import MISSING, fields
 
 from ansible.errors import AnsibleFilterError
 from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identity_center_template import (
-    AccessRecord,
+    AbsentAccessRecord,
+    PresentAccessRecord,
     TemplateInput,
     render_template,
 )
 
-_TOP_LEVEL_FIELDS = (
-    "instance_arn",
-    "identity_store_id",
-    "management_account_id",
-    "access",
-    "user_ids",
-)
-_ACCESS_IDENTITY_FIELDS = ("logical_id", "state")
-_PRESENT_ACCESS_FIELDS = (
-    "name",
-    "description",
-    "session_duration",
-    "users",
-)
 
-
-def _require_fields(value: Mapping, fields: Sequence[str], context: str) -> None:
-    """Reject input that cannot satisfy the collection contract."""
-    missing = [field for field in fields if field not in value]
+def _require_dataclass_fields(value: Mapping, model: type, context: str) -> None:
+    """Reject input that cannot populate a dataclass."""
+    missing = [
+        field.name
+        for field in fields(model)
+        if field.default is MISSING
+        and field.default_factory is MISSING
+        and field.name not in value
+    ]
     if missing:
         missing_fields = ", ".join(missing)
         raise AnsibleFilterError(
@@ -40,35 +33,43 @@ def _template_input(value: Mapping) -> TemplateInput:
     if not isinstance(value, Mapping):
         raise AnsibleFilterError("aws_identity_center_template expects a mapping")
 
-    _require_fields(value, _TOP_LEVEL_FIELDS, "template input")
+    _require_dataclass_fields(value, TemplateInput, "template input")
     access_records = []
     for item in value["access"]:
         if not isinstance(item, Mapping):
             raise AnsibleFilterError(
                 "aws_identity_center_template access entries must be mappings"
             )
-        _require_fields(
-            item,
-            _ACCESS_IDENTITY_FIELDS,
-            f"access record {item.get('logical_id', '<unknown>')}",
-        )
-        if item["state"] == "present":
-            _require_fields(
-                item,
-                _PRESENT_ACCESS_FIELDS,
-                f"access record {item['logical_id']}",
+        state = item.get("state")
+        if state not in ("present", "absent"):
+            raise AnsibleFilterError(
+                "access record "
+                f"{item.get('logical_id', '<unknown>')} has invalid state: "
+                f"{state}"
             )
+        model = PresentAccessRecord if state == "present" else AbsentAccessRecord
+        context = f"access record {item.get('logical_id', '<unknown>')}"
+        _require_dataclass_fields(item, model, context)
+        if state == "absent":
+            access_records.append(
+                AbsentAccessRecord(
+                    logical_id=item["logical_id"],
+                    state="absent",
+                )
+            )
+            continue
+
         managed_policies = (
             tuple(item["managed_policies"]) if "managed_policies" in item else None
         )
         access_records.append(
-            AccessRecord(
+            PresentAccessRecord(
                 logical_id=item["logical_id"],
-                state=item["state"],
-                name=item.get("name", ""),
-                description=item.get("description", ""),
-                session_duration=item.get("session_duration", ""),
-                users=tuple(item.get("users", ())),
+                state="present",
+                name=item["name"],
+                description=item["description"],
+                session_duration=item["session_duration"],
+                users=tuple(item["users"]),
                 managed_policies=managed_policies,
                 role_arn=item.get("role_arn"),
                 target_account_id=item.get("target_account_id"),

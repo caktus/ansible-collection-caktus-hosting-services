@@ -2,6 +2,7 @@
 
 import hashlib
 from dataclasses import dataclass
+from typing import Literal
 
 from troposphere import GetAtt, Template
 from troposphere.cloudformation import WaitConditionHandle
@@ -10,16 +11,25 @@ from troposphere.sso import Assignment, PermissionSet
 
 
 @dataclass(frozen=True)
-class AccessRecord:
+class PresentAccessRecord:
     logical_id: str
-    state: str
-    name: str = ""
-    description: str = ""
-    session_duration: str = ""
-    users: tuple[str, ...] = ()
+    name: str
+    state: Literal["present"]
+    description: str
+    session_duration: str
+    users: tuple[str, ...]
     managed_policies: tuple[str, ...] | None = None
     role_arn: str | None = None
     target_account_id: str | None = None
+
+
+@dataclass(frozen=True)
+class AbsentAccessRecord:
+    logical_id: str
+    state: Literal["absent"]
+
+
+AccessRecord = PresentAccessRecord | AbsentAccessRecord
 
 
 @dataclass(frozen=True)
