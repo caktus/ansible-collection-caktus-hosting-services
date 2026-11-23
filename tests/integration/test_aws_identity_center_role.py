@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[2]
 PLAYBOOK = ROOT / "tests/integration/aws_identity_center.yml"
 
@@ -55,9 +54,7 @@ def access_record(**overrides):
         "name": "ProjectAlpha-Admin",
         "state": "present",
         "description": "Access ProjectAlpha",
-        "role_arn": (
-            "arn:aws:iam::111122223333:role/ProjectAccountAccessRole"
-        ),
+        "role_arn": ("arn:aws:iam::111122223333:role/ProjectAccountAccessRole"),
         "session_duration": "PT4H",
         "users": ["userone", "usertwo"],
     }
@@ -88,9 +85,7 @@ def run_role(aws_stub, access):
         "aws_region": "us-east-1",
     }
     environment = os.environ.copy()
-    environment["PATH"] = (
-        f"{bin_directory}{os.pathsep}{environment.get('PATH', '')}"
-    )
+    environment["PATH"] = f"{bin_directory}{os.pathsep}{environment.get('PATH', '')}"
     environment["AWS_STUB_LOG"] = str(log_path)
     environment["ANSIBLE_COLLECTIONS_PATH"] = str(collection_path)
     environment["ANSIBLE_NOCOLOR"] = "1"
@@ -115,10 +110,7 @@ def aws_calls(aws_stub):
     log_path = aws_stub[1]
     if not log_path.exists():
         return []
-    return [
-        json.loads(line)
-        for line in log_path.read_text().splitlines()
-    ]
+    return [json.loads(line) for line in log_path.read_text().splitlines()]
 
 
 def output(result):
