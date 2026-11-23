@@ -139,3 +139,5 @@ api_playground.py
 .vscode/
 .gitignore
 .ansible
+.superpowers/
+caktus-hosting_services-*.tar.gz
