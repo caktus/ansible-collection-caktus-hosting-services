@@ -16,10 +16,9 @@ _TOP_LEVEL_FIELDS = (
     "access",
     "user_ids",
 )
-_ACCESS_FIELDS = (
-    "logical_id",
+_ACCESS_IDENTITY_FIELDS = ("logical_id", "state")
+_PRESENT_ACCESS_FIELDS = (
     "name",
-    "state",
     "description",
     "session_duration",
     "users",
@@ -50,18 +49,27 @@ def _template_input(value: Mapping) -> TemplateInput:
             )
         _require_fields(
             item,
-            _ACCESS_FIELDS,
+            _ACCESS_IDENTITY_FIELDS,
             f"access record {item.get('logical_id', '<unknown>')}",
+        )
+        if item["state"] == "present":
+            _require_fields(
+                item,
+                _PRESENT_ACCESS_FIELDS,
+                f"access record {item['logical_id']}",
+            )
+        managed_policies = (
+            tuple(item["managed_policies"]) if "managed_policies" in item else None
         )
         access_records.append(
             AccessRecord(
                 logical_id=item["logical_id"],
-                name=item["name"],
                 state=item["state"],
-                description=item["description"],
-                session_duration=item["session_duration"],
-                users=tuple(item["users"]),
-                managed_policies=tuple(item.get("managed_policies", ())),
+                name=item.get("name", ""),
+                description=item.get("description", ""),
+                session_duration=item.get("session_duration", ""),
+                users=tuple(item.get("users", ())),
+                managed_policies=managed_policies,
                 role_arn=item.get("role_arn"),
                 target_account_id=item.get("target_account_id"),
             )

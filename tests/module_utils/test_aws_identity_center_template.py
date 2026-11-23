@@ -119,6 +119,35 @@ def test_renders_managed_and_inline_policies():
     ]
 
 
+def test_preserves_explicit_empty_managed_policy_list():
+    data = template_input()
+    record = data.access[1]
+    explicit_empty = AccessRecord(
+        logical_id=record.logical_id,
+        name=record.name,
+        state=record.state,
+        description=record.description,
+        session_duration=record.session_duration,
+        users=record.users,
+        managed_policies=(),
+        role_arn=record.role_arn,
+    )
+    data = TemplateInput(
+        instance_arn=data.instance_arn,
+        identity_store_id=data.identity_store_id,
+        management_account_id=data.management_account_id,
+        user_ids=data.user_ids,
+        access=(explicit_empty,),
+    )
+
+    properties = json.loads(render_template(data))["Resources"][
+        "ProjectAlphaProdAdminPermissionSet"
+    ]["Properties"]
+
+    assert properties["ManagedPolicies"] == []
+    assert "InlinePolicy" not in properties
+
+
 def test_renders_assignments_with_stable_references():
     resources = render()["Resources"]
     control_plane = resources["ControlPlaneAdminAssignment"]["Properties"]

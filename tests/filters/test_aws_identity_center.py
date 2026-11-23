@@ -69,3 +69,14 @@ def test_filter_names_missing_user_id():
         match="Unable to render IAM Identity Center template.*userthree",
     ):
         filter_module()(data)
+
+
+def test_filter_accepts_minimal_absent_record():
+    data = template_data()
+    data["access"] = [{"logical_id": "ProjectAlphaAdmin", "state": "absent"}]
+
+    resources = json.loads(filter_module()(data))["Resources"]
+
+    assert resources == {
+        "EmptyStackAnchor": {"Type": "AWS::CloudFormation::WaitConditionHandle"}
+    }

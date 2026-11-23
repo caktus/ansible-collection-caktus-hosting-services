@@ -12,12 +12,12 @@ from troposphere.sso import Assignment, PermissionSet
 @dataclass(frozen=True)
 class AccessRecord:
     logical_id: str
-    name: str
     state: str
-    description: str
-    session_duration: str
-    users: tuple[str, ...]
-    managed_policies: tuple[str, ...] = ()
+    name: str = ""
+    description: str = ""
+    session_duration: str = ""
+    users: tuple[str, ...] = ()
+    managed_policies: tuple[str, ...] | None = None
     role_arn: str | None = None
     target_account_id: str | None = None
 
@@ -94,7 +94,7 @@ def render_template(template_input: TemplateInput) -> str:
             "Description": item.description,
             "SessionDuration": item.session_duration,
         }
-        if item.managed_policies:
+        if item.managed_policies is not None:
             permission_set_properties["ManagedPolicies"] = list(item.managed_policies)
         else:
             permission_set_properties["InlinePolicy"] = _assume_role_policy(
