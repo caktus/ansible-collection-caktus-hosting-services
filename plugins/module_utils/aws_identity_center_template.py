@@ -60,12 +60,8 @@ def render_template(template_input: TemplateInput) -> str:
     Returns:
         A CloudFormation JSON template.
     """
-    template = Template(
-        Description="IAM Identity Center authorization"
-    )
-    present_access = [
-        item for item in template_input.access if item.state == "present"
-    ]
+    template = Template(Description="IAM Identity Center authorization")
+    present_access = [item for item in template_input.access if item.state == "present"]
 
     if not present_access:
         template.add_resource(WaitConditionHandle("EmptyStackAnchor"))
@@ -88,9 +84,7 @@ def render_template(template_input: TemplateInput) -> str:
                     f"{logical_id}{_user_logical_id(username)}Membership",
                     IdentityStoreId=template_input.identity_store_id,
                     GroupId=GetAtt(group, "GroupId"),
-                    MemberId=MemberId(
-                        UserId=template_input.user_ids[username]
-                    ),
+                    MemberId=MemberId(UserId=template_input.user_ids[username]),
                 )
             )
 
@@ -101,9 +95,7 @@ def render_template(template_input: TemplateInput) -> str:
             "SessionDuration": item.session_duration,
         }
         if item.managed_policies:
-            permission_set_properties["ManagedPolicies"] = list(
-                item.managed_policies
-            )
+            permission_set_properties["ManagedPolicies"] = list(item.managed_policies)
         else:
             permission_set_properties["InlinePolicy"] = _assume_role_policy(
                 item.role_arn
@@ -120,14 +112,11 @@ def render_template(template_input: TemplateInput) -> str:
             Assignment(
                 f"{logical_id}Assignment",
                 InstanceArn=template_input.instance_arn,
-                PermissionSetArn=GetAtt(
-                    permission_set, "PermissionSetArn"
-                ),
+                PermissionSetArn=GetAtt(permission_set, "PermissionSetArn"),
                 PrincipalId=GetAtt(group, "GroupId"),
                 PrincipalType="GROUP",
                 TargetId=(
-                    item.target_account_id
-                    or template_input.management_account_id
+                    item.target_account_id or template_input.management_account_id
                 ),
                 TargetType="AWS_ACCOUNT",
             )
