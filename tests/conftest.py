@@ -67,3 +67,10 @@ def identitystore():
     client, stubber = _stubbed("identitystore")
     yield client, stubber
     stubber.assert_no_pending_responses()
+
+
+@pytest.fixture
+def cloudformation():
+    client, stubber = _stubbed("cloudformation")
+    yield client, stubber
+    stubber.assert_no_pending_responses()
