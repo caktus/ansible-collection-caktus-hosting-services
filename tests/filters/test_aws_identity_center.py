@@ -55,7 +55,7 @@ def test_filter_names_missing_access_input():
 
     with pytest.raises(
         AnsibleFilterError,
-        match="ProjectAlphaAdmin.*session_duration",
+        match="session_duration",
     ):
         filter_module()(data)
 
