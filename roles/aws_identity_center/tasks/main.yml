@@ -54,191 +54,37 @@
   loop_control:
     label: "{{ item.logical_id | default(item.name | default('unnamed access')) }}"
 
-- name: Check the AWS CLI version
-  ansible.builtin.command:
-    argv:
-      - aws
-      - --version
-  register: aws_sso_cli_version_command
-  changed_when: false
-
-- name: Parse the AWS CLI version
-  ansible.builtin.set_fact:
-    aws_sso_cli_version: >-
-      {{
-        (aws_sso_cli_version_command.stdout ~ ' ' ~
-        aws_sso_cli_version_command.stderr) |
-        regex_search('aws-cli/[0-9.]+') |
-        regex_replace('^aws-cli/', '')
-      }}
-
-- name: Require AWS CLI 2.22.0 or later
-  ansible.builtin.assert:
-    that:
-      - aws_sso_cli_version is version('2.22.0', '>=')
-    fail_msg: >-
-      AWS CLI 2.22.0 or later is required; found
-      {{ aws_sso_cli_version | default('an unknown version') }}.
-
-- name: Read the AWS management account ID
-  amazon.aws.aws_caller_info:
-  register: aws_sso_caller_info
-  when: aws_sso_management_account_id is not defined
+- name: Discover IAM Identity Center
+  caktus.hosting_services.aws_identity_center_info:
+    access: "{{ aws_sso_access }}"
+    email_domain: "{{ aws_sso_email_domain }}"
+    region: "{{ aws_region }}"
+  register: aws_sso_info
   no_log: true
 
-- name: Set the AWS management account ID
-  ansible.builtin.set_fact:
-    aws_sso_management_account_id: "{{ aws_sso_caller_info.account }}"
-  when: aws_sso_management_account_id is not defined
+- name: Build IAM Identity Center template
+  caktus.hosting_services.aws_identity_center_template:
+    access: "{{ aws_sso_access }}"
+    instance_arn: "{{ aws_sso_info.instance_arn }}"
+    identity_store_id: "{{ aws_sso_info.identity_store_id }}"
+    management_account_id: "{{ aws_sso_info.account_id }}"
+    user_ids: "{{ aws_sso_info.user_ids }}"
+  register: aws_sso_prepared
   no_log: true
 
-- name: List IAM Identity Center instances
-  ansible.builtin.command:
-    argv:
-      - aws
-      - sso-admin
-      - list-instances
-      - --region
-      - "{{ aws_region }}"
-      - --output
-      - json
-  register: aws_sso_instances_command
-  changed_when: false
+- name: Validate IAM Identity Center template
+  caktus.hosting_services.cloudformation_validate:
+    template_body: "{{ aws_sso_prepared.template_body }}"
+    region: "{{ aws_region }}"
+  register: aws_sso_validation
   no_log: true
-
-- name: Parse IAM Identity Center instances
-  ansible.builtin.set_fact:
-    aws_sso_instances: >-
-      {{ (aws_sso_instances_command.stdout | from_json).Instances }}
-  no_log: true
-
-- name: Require one IAM Identity Center instance
-  ansible.builtin.assert:
-    that:
-      - aws_sso_instances | length == 1
-    fail_msg: >-
-      Expected one IAM Identity Center instance in {{ aws_region }},
-      found {{ aws_sso_instances | length }}.
-  no_log: true
-
-- name: Set IAM Identity Center discovery facts
-  ansible.builtin.set_fact:
-    aws_sso_instance_arn: "{{ aws_sso_instances[0].InstanceArn }}"
-    aws_sso_identity_store_id: "{{ aws_sso_instances[0].IdentityStoreId }}"
-    aws_sso_unique_users: >-
-      {{
-        aws_sso_access |
-        selectattr('state', 'equalto', 'present') |
-        map(attribute='users') |
-        flatten |
-        unique |
-        list
-      }}
-  no_log: true
-
-- name: Look up IAM Identity Center user IDs
-  ansible.builtin.command:
-    argv:
-      - aws
-      - identitystore
-      - get-user-id
-      - --identity-store-id
-      - "{{ aws_sso_identity_store_id }}"
-      - --alternate-identifier
-      - >-
-        {{
-          {
-            'UniqueAttribute': {
-              'AttributePath': 'userName',
-              'AttributeValue': item ~ '@' ~ aws_sso_email_domain
-            }
-          } | to_json
-        }}
-      - --region
-      - "{{ aws_region }}"
-      - --output
-      - json
-  loop: "{{ aws_sso_unique_users }}"
-  register: aws_sso_user_lookup
-  changed_when: false
-  no_log: true
-  loop_control:
-    label: "{{ item }}"
-
-- name: Initialize the IAM Identity Center user map
-  ansible.builtin.set_fact:
-    aws_sso_user_ids: {}
-  no_log: true
-
-- name: Build the IAM Identity Center user map
-  ansible.builtin.set_fact:
-    aws_sso_user_ids: >-
-      {{
-        aws_sso_user_ids |
-        combine({item.item: (item.stdout | from_json).UserId})
-      }}
-  loop: "{{ aws_sso_user_lookup.results }}"
-  no_log: true
-  loop_control:
-    label: "{{ item.item }}"
-
-- name: Render the IAM Identity Center template
-  ansible.builtin.set_fact:
-    aws_sso_cloudformation_template: >-
-      {{
-        {
-          'instance_arn': aws_sso_instance_arn,
-          'identity_store_id': aws_sso_identity_store_id,
-          'management_account_id': aws_sso_management_account_id,
-          'access': aws_sso_access,
-          'user_ids': aws_sso_user_ids
-        } |
-        caktus.hosting_services.aws_identity_center_template
-      }}
-  no_log: true
-
-- name: Validate the IAM Identity Center template
-  block:
-    - name: Create a temporary IAM Identity Center template file
-      ansible.builtin.tempfile:
-        state: file
-        suffix: .json
-      register: aws_sso_template_file
-
-    - name: Write the IAM Identity Center template
-      ansible.builtin.copy:
-        content: "{{ aws_sso_cloudformation_template }}"
-        dest: "{{ aws_sso_template_file.path }}"
-        mode: "0600"
-      no_log: true
-
-    - name: Validate the IAM Identity Center template with AWS
-      ansible.builtin.command:
-        argv:
-          - aws
-          - cloudformation
-          - validate-template
-          - --template-body
-          - "file://{{ aws_sso_template_file.path }}"
-          - --region
-          - "{{ aws_region }}"
-          - --output
-          - json
-      changed_when: false
-      no_log: true
-  always:
-    - name: Remove the temporary IAM Identity Center template file
-      ansible.builtin.file:
-        path: "{{ aws_sso_template_file.path }}"
-        state: absent
-      when: aws_sso_template_file.path is defined
 
 - name: Create or update the IAM Identity Center stack
   amazon.aws.cloudformation:
     stack_name: "{{ aws_sso_stack_name }}"
     state: present
     region: "{{ aws_region }}"
-    template_body: "{{ aws_sso_cloudformation_template }}"
+    template_body: "{{ aws_sso_prepared.template_body }}"
     create_changeset: "{{ aws_sso_review_changeset | bool }}"
     capabilities:
       - CAPABILITY_IAM
@@ -247,31 +93,3 @@
   register: aws_sso_cloudformation
   when: aws_sso_deploy | bool
   no_log: true
-
-- name: Describe the IAM Identity Center change set
-  ansible.builtin.command:
-    argv:
-      - aws
-      - cloudformation
-      - describe-change-set
-      - --change-set-name
-      - "{{ aws_sso_cloudformation.change_set_id }}"
-      - --query
-      - "Changes[].ResourceChange.[Action,LogicalResourceId,ResourceType]"
-      - --output
-      - text
-      - --region
-      - "{{ aws_region }}"
-  register: aws_sso_change_set
-  changed_when: false
-  when:
-    - aws_sso_deploy | bool
-    - aws_sso_cloudformation.change_set_id is defined
-  no_log: true
-
-- name: Show the IAM Identity Center change set
-  ansible.builtin.debug:
-    var: aws_sso_change_set.stdout_lines
-  when:
-    - aws_sso_deploy | bool
-    - aws_sso_cloudformation.change_set_id is defined
