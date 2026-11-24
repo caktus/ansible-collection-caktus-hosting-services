@@ -1,0 +1,111 @@
+---
+- name: Require IAM Identity Center access records
+  ansible.builtin.assert:
+    that:
+      - aws_sso_access is defined
+      - aws_sso_access | length > 0
+    fail_msg: aws_sso_access must contain at least one record
+
+- name: Validate IAM Identity Center access states
+  ansible.builtin.assert:
+    that:
+      - item.state is defined
+      - item.state in ['present', 'absent']
+    fail_msg: >-
+      Invalid or missing state for
+      {{ item.logical_id | default(item.name | default('unnamed access')) }}:
+      {{ item.state | default('undefined') }}
+  loop: "{{ aws_sso_access }}"
+  loop_control:
+    label: "{{ item.logical_id | default(item.name | default('unnamed access')) }}"
+
+- name: Validate present IAM Identity Center access records
+  ansible.builtin.assert:
+    that:
+      - item.logical_id is defined
+      - item.logical_id | length > 0
+      - item.logical_id is match('^[A-Za-z][A-Za-z0-9]*$')
+      - >-
+        aws_sso_access |
+        selectattr('state', 'equalto', 'present') |
+        selectattr('logical_id', 'equalto', item.logical_id) |
+        list |
+        length == 1
+      - item.name is defined
+      - item.name | length <= 32
+      - item.name is match('^[A-Za-z0-9+=,.@_-]+$')
+      - >-
+        aws_sso_access |
+        selectattr('state', 'equalto', 'present') |
+        selectattr('name', 'equalto', item.name) |
+        list |
+        length == 1
+      - item.users is defined
+      - item.users | length > 0
+      - item.managed_policies is defined or item.role_arn is defined
+    fail_msg: >-
+      Invalid IAM Identity Center access record
+      {{ item.logical_id | default('undefined') }}
+      / {{ item.name | default('undefined') }}.
+      The logical ID and name must be unique, the logical ID must be
+      alphanumeric and start with a letter, the name must contain at most 32
+      permitted characters, and the record must have users and authorization.
+  loop: "{{ aws_sso_access | selectattr('state', 'equalto', 'present') }}"
+  loop_control:
+    label: "{{ item.logical_id | default(item.name | default('unnamed access')) }}"
+
+- name: Discover IAM Identity Center
+  caktus.hosting_services.aws_identity_center_info:
+    access: "{{ aws_sso_access }}"
+    email_domain: "{{ aws_sso_email_domain }}"
+    region: "{{ aws_region }}"
+  register: aws_sso_info
+  no_log: true
+
+- name: Build IAM Identity Center template
+  caktus.hosting_services.aws_identity_center_template:
+    access: "{{ aws_sso_access }}"
+    instance_arn: "{{ aws_sso_info.instance_arn }}"
+    identity_store_id: "{{ aws_sso_info.identity_store_id }}"
+    management_account_id: "{{ aws_sso_info.account_id }}"
+    user_ids: "{{ aws_sso_info.user_ids }}"
+  register: aws_sso_prepared
+  no_log: true
+
+- name: Create IAM Identity Center template directory
+  ansible.builtin.file:
+    path: "{{ aws_sso_template_output | dirname }}"
+    state: directory
+    mode: "0755"
+  when: aws_sso_template_output | length > 0
+  no_log: true
+
+- name: Write IAM Identity Center template
+  ansible.builtin.copy:
+    content: "{{ aws_sso_prepared.template_body }}"
+    dest: "{{ aws_sso_template_output }}"
+    mode: "0644"
+  when: aws_sso_template_output | length > 0
+  no_log: true
+
+- name: Validate IAM Identity Center template
+  caktus.hosting_services.cloudformation_validate:
+    template_body: "{{ aws_sso_prepared.template_body }}"
+    region: "{{ aws_region }}"
+  register: aws_sso_validation
+  no_log: true
+
+- name: Create or update the IAM Identity Center stack
+  amazon.aws.cloudformation:
+    stack_name: "{{ aws_sso_stack_name }}"
+    state: present
+    region: "{{ aws_region }}"
+    template_body: "{{ aws_sso_prepared.template_body }}"
+    create_changeset: "{{ aws_sso_review_changeset | bool }}"
+    capabilities:
+      - CAPABILITY_IAM
+      - CAPABILITY_NAMED_IAM
+    termination_protection: true
+  register: aws_sso_cloudformation
+  when: aws_sso_deploy | bool
+  no_log: true

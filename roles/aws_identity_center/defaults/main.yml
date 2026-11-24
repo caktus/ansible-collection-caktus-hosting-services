@@ -1,0 +1,6 @@
+---
+aws_sso_deploy: false
+aws_sso_review_changeset: true
+aws_sso_stack_name: caktus-iam-identity-center
+aws_sso_email_domain: caktusgroup.com
+aws_sso_template_output: ""

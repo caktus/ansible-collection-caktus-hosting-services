@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.9.0 - 2026-11-23
+
+- Add IAM Identity Center authorization role
+- Add Troposphere CloudFormation template generation
+
 ## v0.8.0 - 2026-08-12
 
 - Add `regions` to `UptimeTest` LIST_PARAMETERS

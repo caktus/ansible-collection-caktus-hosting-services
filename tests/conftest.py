@@ -46,3 +46,31 @@ def ssm():
     client, stubber = _stubbed("ssm")
     yield client, stubber
     stubber.assert_no_pending_responses()
+
+
+@pytest.fixture
+def sts():
+    client, stubber = _stubbed("sts")
+    yield client, stubber
+    stubber.assert_no_pending_responses()
+
+
+@pytest.fixture
+def sso_admin():
+    client, stubber = _stubbed("sso-admin")
+    yield client, stubber
+    stubber.assert_no_pending_responses()
+
+
+@pytest.fixture
+def identitystore():
+    client, stubber = _stubbed("identitystore")
+    yield client, stubber
+    stubber.assert_no_pending_responses()
+
+
+@pytest.fixture
+def cloudformation():
+    client, stubber = _stubbed("cloudformation")
+    yield client, stubber
+    stubber.assert_no_pending_responses()
