@@ -72,6 +72,22 @@
   register: aws_sso_prepared
   no_log: true
 
+- name: Create IAM Identity Center template directory
+  ansible.builtin.file:
+    path: "{{ aws_sso_template_output | dirname }}"
+    state: directory
+    mode: "0755"
+  when: aws_sso_template_output | length > 0
+  no_log: true
+
+- name: Write IAM Identity Center template
+  ansible.builtin.copy:
+    content: "{{ aws_sso_prepared.template_body }}"
+    dest: "{{ aws_sso_template_output }}"
+    mode: "0644"
+  when: aws_sso_template_output | length > 0
+  no_log: true
+
 - name: Validate IAM Identity Center template
   caktus.hosting_services.cloudformation_validate:
     template_body: "{{ aws_sso_prepared.template_body }}"

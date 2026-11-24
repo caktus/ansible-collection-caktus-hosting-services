@@ -55,3 +55,29 @@ def test_role_uses_collection_modules_without_aws_cli():
         "caktus.hosting_services.cloudformation_validate",
     }
     assert aws_commands == []
+
+
+def test_role_can_write_generated_template():
+    tasks = yaml.safe_load(TASKS.read_text())
+    copy_task = next(
+        task
+        for task in tasks
+        if task.get("name") == "Write IAM Identity Center template"
+    )
+
+    assert copy_task["ansible.builtin.copy"] == {
+        "content": "{{ aws_sso_prepared.template_body }}",
+        "dest": "{{ aws_sso_template_output }}",
+        "mode": "0644",
+    }
+    assert copy_task["when"] == "aws_sso_template_output | length > 0"
+    directory_task = next(
+        task
+        for task in tasks
+        if task.get("name") == "Create IAM Identity Center template directory"
+    )
+    assert directory_task["ansible.builtin.file"] == {
+        "path": "{{ aws_sso_template_output | dirname }}",
+        "state": "directory",
+        "mode": "0755",
+    }
