@@ -4,6 +4,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Literal
 
+import yaml
 from troposphere import GetAtt, Template
 from troposphere.cloudformation import WaitConditionHandle
 from troposphere.identitystore import Group, GroupMembership, MemberId
@@ -41,6 +42,16 @@ class TemplateInput:
     user_ids: dict[str, str]
 
 
+class CloudFormationLoader(yaml.SafeLoader):
+    pass
+
+
+CloudFormationLoader.add_constructor(
+    "!GetAtt",
+    lambda loader, node: {"Fn::GetAtt": loader.construct_scalar(node).split(".", 1)},
+)
+
+
 def _user_logical_id(username: str) -> str:
     """Build a stable CloudFormation membership identifier."""
     digest = hashlib.sha1(username.encode()).hexdigest()
@@ -71,11 +82,12 @@ def render_template(template_input: TemplateInput) -> str:
         A CloudFormation JSON template.
     """
     template = Template(Description="IAM Identity Center authorization")
+    template.set_version("2010-09-09")
     present_access = [item for item in template_input.access if item.state == "present"]
 
     if not present_access:
         template.add_resource(WaitConditionHandle("EmptyStackAnchor"))
-        return template.to_json()
+        return template.to_yaml()
 
     for item in present_access:
         logical_id = item.logical_id
@@ -132,4 +144,9 @@ def render_template(template_input: TemplateInput) -> str:
             )
         )
 
-    return template.to_json()
+    return template.to_yaml()
+
+
+def load_template(template_body: str) -> dict:
+    """Parse a CloudFormation YAML template."""
+    return yaml.load(template_body, Loader=CloudFormationLoader)

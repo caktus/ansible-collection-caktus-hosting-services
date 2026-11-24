@@ -55,7 +55,6 @@ resource_types:
   type: dict
 """
 
-import json
 from collections import Counter
 from collections.abc import Mapping
 
@@ -64,6 +63,7 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identi
     AbsentAccessRecord,
     PresentAccessRecord,
     TemplateInput,
+    load_template,
     render_template,
 )
 
@@ -115,7 +115,7 @@ def build(
             user_ids=user_ids,
         )
     )
-    resources = json.loads(template_body)["Resources"]
+    resources = load_template(template_body)["Resources"]
     return {
         "template_body": template_body,
         "resource_count": len(resources),

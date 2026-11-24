@@ -1,5 +1,6 @@
-import json
-
+from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identity_center_template import (
+    load_template,
+)
 from ansible_collections.caktus.hosting_services.plugins.modules.aws_identity_center_template import (
     build,
 )
@@ -49,7 +50,7 @@ def test_builds_template_summary():
         management_account_id="111122223333",
         user_ids=user_ids(),
     )
-    resources = json.loads(result["template_body"])["Resources"]
+    resources = load_template(result["template_body"])["Resources"]
 
     assert result["resource_count"] == 9
     assert result["resource_types"] == {
@@ -76,6 +77,6 @@ def test_builds_anchor_for_minimal_absent_record():
         user_ids={},
     )
 
-    assert json.loads(result["template_body"])["Resources"] == {
+    assert load_template(result["template_body"])["Resources"] == {
         "EmptyStackAnchor": {"Type": "AWS::CloudFormation::WaitConditionHandle"}
     }

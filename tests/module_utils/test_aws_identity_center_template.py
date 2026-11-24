@@ -8,6 +8,7 @@ from ansible_collections.caktus.hosting_services.plugins.module_utils.aws_identi
     AbsentAccessRecord,
     PresentAccessRecord,
     TemplateInput,
+    load_template,
     render_template,
 )
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -72,7 +73,14 @@ def template_input():
 
 
 def render():
-    return json.loads(render_template(template_input()))
+    return load_template(render_template(template_input()))
+
+
+def test_serializes_intrinsics_as_yaml_short_form():
+    rendered = render_template(template_input())
+
+    assert "!GetAtt" in rendered
+    assert "Fn::GetAtt" not in rendered
 
 
 def test_renders_present_access_records():
@@ -136,7 +144,7 @@ def test_preserves_explicit_empty_managed_policy_list():
         access=(explicit_empty,),
     )
 
-    properties = json.loads(render_template(data))["Resources"][
+    properties = load_template(render_template(data))["Resources"][
         "ProjectAlphaProdAdminPermissionSet"
     ]["Properties"]
 
@@ -191,7 +199,7 @@ def test_renders_anchor_when_all_records_are_absent():
         access=(data.access[-1],),
     )
 
-    resources = json.loads(render_template(data))["Resources"]
+    resources = load_template(render_template(data))["Resources"]
 
     assert resources == {
         "EmptyStackAnchor": {"Type": "AWS::CloudFormation::WaitConditionHandle"}
@@ -233,6 +241,6 @@ def test_matches_legacy_template_resources():
     )
 
     legacy_resources = yaml.load(legacy, Loader=CloudFormationLoader)["Resources"]
-    troposphere_resources = json.loads(render_template(data))["Resources"]
+    troposphere_resources = load_template(render_template(data))["Resources"]
 
     assert troposphere_resources == legacy_resources
