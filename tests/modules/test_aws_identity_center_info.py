@@ -4,7 +4,6 @@ from ansible_collections.caktus.hosting_services.plugins.modules.aws_identity_ce
     discover,
 )
 
-
 INSTANCE_ARN = "arn:aws:sso:::instance/ssoins-example"
 IDENTITY_STORE_ID = "d-1234567890"
 
@@ -95,9 +94,7 @@ def test_discovers_identity_center_and_unique_users(sts, sso_admin, identitystor
 
 
 @pytest.mark.parametrize("instance_count", [0, 2])
-def test_requires_exactly_one_instance(
-    sts, sso_admin, identitystore, instance_count
-):
+def test_requires_exactly_one_instance(sts, sso_admin, identitystore, instance_count):
     sts_client, sts_stub = sts
     sso_client, sso_stub = sso_admin
     identity_client, _ = identitystore

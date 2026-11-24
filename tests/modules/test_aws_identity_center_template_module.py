@@ -13,9 +13,7 @@ def access_records():
             "state": "present",
             "description": "Manage the control plane",
             "target_account_id": "444455556666",
-            "managed_policies": [
-                "arn:aws:iam::aws:policy/AdministratorAccess"
-            ],
+            "managed_policies": ["arn:aws:iam::aws:policy/AdministratorAccess"],
             "session_duration": "PT1H",
             "users": ["userone", "usertwo"],
         },
@@ -24,10 +22,7 @@ def access_records():
             "name": "ProjectAlpha-Admin",
             "state": "present",
             "description": "Access ProjectAlpha",
-            "role_arn": (
-                "arn:aws:iam::777788889999:"
-                "role/ProjectAccountAccessRole"
-            ),
+            "role_arn": ("arn:aws:iam::777788889999:role/ProjectAccountAccessRole"),
             "session_duration": "PT4H",
             "users": ["userone"],
         },
@@ -82,7 +77,5 @@ def test_builds_anchor_for_minimal_absent_record():
     )
 
     assert json.loads(result["template_body"])["Resources"] == {
-        "EmptyStackAnchor": {
-            "Type": "AWS::CloudFormation::WaitConditionHandle"
-        }
+        "EmptyStackAnchor": {"Type": "AWS::CloudFormation::WaitConditionHandle"}
     }

@@ -78,9 +78,7 @@ def _present_access(value: Mapping) -> PresentAccessRecord:
         session_duration=value["session_duration"],
         users=tuple(value["users"]),
         managed_policies=(
-            tuple(value["managed_policies"])
-            if "managed_policies" in value
-            else None
+            tuple(value["managed_policies"]) if "managed_policies" in value else None
         ),
         role_arn=value.get("role_arn"),
         target_account_id=value.get("target_account_id"),
@@ -122,11 +120,7 @@ def build(
         "template_body": template_body,
         "resource_count": len(resources),
         "resource_types": dict(
-            sorted(
-                Counter(
-                    resource["Type"] for resource in resources.values()
-                ).items()
-            )
+            sorted(Counter(resource["Type"] for resource in resources.values()).items())
         ),
     }
 
